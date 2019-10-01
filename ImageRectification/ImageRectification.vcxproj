@@ -154,11 +154,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="correspondenceChooser.h" />
     <ClInclude Include="estimator.h" />
+    <ClInclude Include="preprocessing.h" />
+    <ClInclude Include="rectification.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="correspondenceChooser.cpp" />
     <ClCompile Include="estimator.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="preprocessing.cpp" />
+    <ClCompile Include="rectification.cpp" />
+    <ClCompile Include="util.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

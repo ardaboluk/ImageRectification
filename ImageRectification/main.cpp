@@ -1,6 +1,8 @@
 
 #include <iostream>
 #include <vector>
+#include <limits>
+#include <exception>
 
 #include "opencv2/calib3d.hpp"
 #include "opencv2/core.hpp"
@@ -8,16 +10,216 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include "estimator.h"
+#include "util.h"
+#include "rectification.h"
+#include "correspondenceChooser.h"
 
+void checkFundamentalMatrix(double**, float**);
+void checkFundamentalMatrix(cv::Mat&, cv::Mat&, cv::Mat&);
 void testFundamental();
 void testEstimator();
 
 int main() {
 
 	//testFundamental();
-	testEstimator();
+	//testEstimator();
+
+	cv::Mat image1 = cv::imread("img1.jpg", 0);
+	cv::Mat image2 = cv::imread("img2.jpg", 0);
+	CorrespondenceChooser::initializeImages(image1, image2);
+	cv::namedWindow("Correspondence");
+	cv::setMouseCallback("Correspondence", CorrespondenceChooser::CallBackFunc, 0);
+
+	while (true) {
+		imshow("Correspondence", CorrespondenceChooser::getResultImageToDisplay());
+		if (CorrespondenceChooser::isWindowClosed) {
+			break;
+		}
+		cv::waitKey(1);
+	}
+
+	std::cout << CorrespondenceChooser::numCorrespondences << std::endl;
+	float** pointCorrespondences = CorrespondenceChooser::getPointCorrespondences();
+
+	for (int i = 0; i < CorrespondenceChooser::numCorrespondences; i++) {
+		delete[] pointCorrespondences[i];
+	}
+	delete[] pointCorrespondences;
 
 	return 0;
+}
+
+void checkFundamentalMatrix(double** fundamentalMatrix, float** correspondences) {
+	/*
+	* Checks if the given fundamental matrix satisfies the equation xFx' ~ 0 for each point.
+	*/
+	double fmatArray[3][3];
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			fmatArray[i][j] = fundamentalMatrix[i][j];
+		}
+	}
+
+	cv::Mat fmat = cv::Mat(3, 3, CV_64FC1, fmatArray);
+
+	std::cout << "Verifying the fundamental matrix using line equation." << std::endl;
+	for (int i = 0; i < 8; i++) {
+		double tmpXArr[3] = { correspondences[i][0], correspondences[i][1], 1.0 };
+		double tmpXPrimeArr[3] = { correspondences[i][2], correspondences[i][3], 1.0 };
+		cv::Mat xVec = cv::Mat(1, 3, CV_64FC1, tmpXArr);
+		cv::Mat xPrimeVec = cv::Mat(3, 1, CV_64FC1, tmpXPrimeArr);
+		cv::Mat resultMat = xVec * fmat * xPrimeVec;
+		std::cout << resultMat << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+void checkFundamentalMatrix(cv::Mat& fundamentalMatrix, cv::Mat& points1, cv::Mat& points2) {
+	/*
+	* This function works with cv::Mat objects.
+	* Checks if the given fundamental matrix satisfies the equation xFx' ~ 0 for each point.
+	*/
+	std::cout << "Verifying the fundamental matrix using line equation." << std::endl;
+	for (int i = 0; i < points1.rows; i++) {
+		double points1Arr[3] = { points1.at<float>(i, 0), points1.at<float>(i, 1), 1.0f };
+		double points2Arr[3] = { points2.at<float>(i, 0), points2.at<float>(i, 1), 1.0f };
+		cv::Mat currentPoint1Vec(cv::Size(3, 1), CV_64FC1, points1Arr);
+		cv::Mat currentPoint2Vec(cv::Size(3, 1), CV_64FC1, points2Arr);
+		cv::Mat resultMat = currentPoint1Vec * fundamentalMatrix * currentPoint2Vec.t();
+		std::cout << resultMat << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+void testEstimator() {
+	cv::Mat image1 = cv::imread("img1.jpg", 0);
+	cv::Mat image2 = cv::imread("img2.jpg", 0);
+	if (!image1.data || !image2.data)
+		return;
+
+	std::vector<cv::KeyPoint> keypoints1;
+	std::vector<cv::KeyPoint> keypoints2;
+
+	cv::Ptr<cv::ORB> surf = cv::ORB::create();
+
+	surf->detect(image1, keypoints1);
+	surf->detect(image2, keypoints2);
+
+	std::cout << "Number of SURF points (1): " << keypoints1.size() << std::endl;
+	std::cout << "Number of SURF points (2): " << keypoints2.size() << std::endl;
+
+	cv::Mat descriptors1, descriptors2;
+	surf->compute(image1, keypoints1, descriptors1);
+	surf->compute(image2, keypoints2, descriptors2);
+
+	cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create();
+
+	std::vector<cv::DMatch> matches;
+	matcher->match(descriptors1, descriptors2, matches);
+
+	std::cout << "Number of matched points: " << matches.size() << std::endl;
+
+	std::vector<cv::DMatch> selMatches;
+
+	selMatches.push_back(matches[14]);
+	selMatches.push_back(matches[16]);
+	selMatches.push_back(matches[141]);
+	selMatches.push_back(matches[146]);
+	selMatches.push_back(matches[235]);
+	selMatches.push_back(matches[238]);
+	selMatches.push_back(matches[274]);
+	selMatches.push_back(matches[278]);
+
+	std::vector<int> pointIndexes1;
+	std::vector<int> pointIndexes2;
+	for (auto it = selMatches.begin(); it != selMatches.end(); ++it)
+	{
+		// Get the indexes of the selected matched keypoints
+		pointIndexes1.push_back(it->queryIdx);
+		pointIndexes2.push_back(it->trainIdx);
+	}
+
+	std::vector<cv::Point2f> selPoints1, selPoints2;
+	cv::KeyPoint::convert(keypoints1, selPoints1, pointIndexes1);
+	cv::KeyPoint::convert(keypoints2, selPoints2, pointIndexes2);
+
+	float** pointCorrespondences = new float* [8];
+	for (int i = 0; i < 8; i++) {
+		pointCorrespondences[i] = new float[4];
+	}
+
+	for (int i = 0; i < 8; i++) {
+		pointCorrespondences[i][0] = selPoints1[i].x;
+		pointCorrespondences[i][1] = selPoints1[i].y;
+		pointCorrespondences[i][2] = selPoints2[i].x;
+		pointCorrespondences[i][3] = selPoints2[i].y;
+	}
+
+	Estimator estimator;
+	double** FMatrix = estimator.estimateFundamentalMatrix(pointCorrespondences, selPoints1.size());
+	//DEBUG
+	Util::displayMat(FMatrix, 3, 3, "FMatrix");
+	checkFundamentalMatrix(FMatrix, pointCorrespondences);
+
+	//DEBUG
+	cv::Mat FMatrix_debug = estimator.estimateMatrixDebug(pointCorrespondences, selPoints1.size());
+	Util::displayMat(FMatrix_debug, "FMatrix_debug");
+	cv::Mat selPoints1Mat = cv::Mat(selPoints1);
+	cv::Mat selPoints2Mat = cv::Mat(selPoints2);
+	checkFundamentalMatrix(FMatrix_debug, selPoints1Mat, selPoints2Mat);
+
+	float** epilines = Rectification::getEpilines(pointCorrespondences, selPoints1.size(), FMatrix);
+	cv::Mat image1EpilinesCopy = image1.clone();
+	cv::Mat image2EpilinesCopy = image2.clone();
+	Rectification::drawEpilines(epilines, selPoints1.size(), image1EpilinesCopy, image2EpilinesCopy);
+	cv::namedWindow("Epilines1");
+	cv::namedWindow("Epilines2");
+	cv::imshow("Epilines1", image1EpilinesCopy);
+	cv::imshow("Epilines2", image2EpilinesCopy);
+	cv::waitKey(0);
+
+	//DEBUG
+	cv::Mat image1EpilinesDebugCopy = image1.clone();
+	cv::Mat image2EpilinesDebugCopy = image2.clone();
+	std::vector<cv::Vec3f> lines1;
+	std::vector<cv::Vec3f> lines2;
+	cv::computeCorrespondEpilines(cv::Mat(selPoints1), 1, FMatrix_debug, lines1);
+	cv::computeCorrespondEpilines(cv::Mat(selPoints2), 1, FMatrix_debug.t(), lines2);
+	for (auto it = lines1.begin(); it != lines1.end(); ++it){
+		cv::line(image2EpilinesDebugCopy, cv::Point(0, -(*it)[2] / (*it)[1]),
+			cv::Point(image2EpilinesDebugCopy.cols, -((*it)[2] + (*it)[0] * image2EpilinesDebugCopy.cols) / (*it)[1]),
+			cv::Scalar(255, 255, 255));
+	}
+	for (auto it = lines2.begin(); it != lines2.end(); ++it) {
+		cv::line(image1EpilinesDebugCopy, cv::Point(0, -(*it)[2] / (*it)[1]),
+			cv::Point(image1EpilinesDebugCopy.cols, -((*it)[2] + (*it)[0] * image1EpilinesDebugCopy.cols) / (*it)[1]),
+			cv::Scalar(255, 255, 255));
+	}
+	cv::namedWindow("EpilinesDebug1");
+	cv::namedWindow("EpilinesDebug2");
+	cv::imshow("EpilinesDebug1", image1EpilinesDebugCopy);
+	cv::imshow("EpilinesDebug2", image2EpilinesDebugCopy);
+	cv::waitKey(0);
+
+	//DEBUG
+	Util::displayMat(epilines, selPoints1.size(), 6, "Epilines");
+
+	image1.release();
+	image2.release();
+	image1EpilinesCopy.release();
+	image2EpilinesCopy.release();
+
+	for (int i = 0; i < selPoints1.size(); i++) {
+		delete[] pointCorrespondences[i];
+		delete[] epilines[i];
+	}
+	delete[] pointCorrespondences;
+	delete[] epilines;
+
+	for (int i = 0; i < 3; i++) {
+		delete[] FMatrix[i];
+	}
+	delete[] FMatrix;
 }
 
 void testFundamental() {
@@ -81,21 +283,6 @@ void testFundamental() {
 
 	// Select few Matches
 	std::vector<cv::DMatch> selMatches;
-	/*
-	keypoints1.push_back(cv::KeyPoint(342.,615.,2));
-	keypoints2.push_back(cv::KeyPoint(410.,600.,2));
-	selMatches.push_back(cv::DMatch(keypoints1.size()-1,keypoints2.size()-1,0)); // street light
-	bulb selMatches.push_back(matches[6]);  // right tower selMatches.push_back(matches[60]);  //
-	left bottom window selMatches.push_back(matches[139]); selMatches.push_back(matches[141]);  //
-	middle window selMatches.push_back(matches[213]); selMatches.push_back(matches[273]);
-	int kk=0;
-	while (kk<matches.size()) {
-		std::cout<<kk<<std::endl;
-	selMatches.push_back(matches[kk++]);
-	selMatches.pop_back();
-	cv::waitKey();
-	}
-	*/
 
 	/* between church01 and church03 */
 	selMatches.push_back(matches[14]);
@@ -105,6 +292,7 @@ void testFundamental() {
 	selMatches.push_back(matches[235]);
 	selMatches.push_back(matches[238]);
 	selMatches.push_back(matches[274]);
+	selMatches.push_back(matches[278]);
 
 	// Draw the selected matches
 	cv::Mat imageMatches;
@@ -154,11 +342,16 @@ void testFundamental() {
 		++it;
 	}
 
-	// Compute F matrix from 7 matches
+	// Compute F matrix from 8 matches
 	cv::Mat fundemental = cv::findFundamentalMat(cv::Mat(selPoints1), // points in first image
 		cv::Mat(selPoints2), // points in second image
-		cv::FM_7POINT);       // 7-point method
+		cv::FM_8POINT);       // 7-point method
 	std::cout << "M = " << std::endl << " " << fundemental << std::endl << std::endl;
+
+	//DEBUG
+	cv::Mat selPoints1Mat = cv::Mat(selPoints1);
+	cv::Mat selPoints2Mat = cv::Mat(selPoints2);
+	checkFundamentalMatrix(fundemental, selPoints1Mat, selPoints2Mat);
 
 	std::cout << "F-Matrix size= " << fundemental.rows << "," << fundemental.cols << std::endl;
 
@@ -331,95 +524,4 @@ void testFundamental() {
 
 	cv::waitKey();
 	return;
-}
-
-void testEstimator() {
-	cv::Mat image1 = cv::imread("img1.jpg", 0);
-	cv::Mat image2 = cv::imread("img2.jpg", 0);
-	if (!image1.data || !image2.data)
-		return;
-
-	std::vector<cv::KeyPoint> keypoints1;
-	std::vector<cv::KeyPoint> keypoints2;
-
-	auto surf = cv::ORB::create();
-
-	surf->detect(image1, keypoints1);
-	surf->detect(image2, keypoints2);
-
-	std::cout << "Number of SURF points (1): " << keypoints1.size() << std::endl;
-	std::cout << "Number of SURF points (2): " << keypoints2.size() << std::endl;
-
-	cv::Mat descriptors1, descriptors2;
-	surf->compute(image1, keypoints1, descriptors1);
-	surf->compute(image2, keypoints2, descriptors2);
-
-	auto matcher = cv::BFMatcher::create();
-
-	std::vector<cv::DMatch> matches;
-	matcher->match(descriptors1, descriptors2, matches);
-
-	std::cout << "Number of matched points: " << matches.size() << std::endl;
-
-	std::vector<cv::DMatch> selMatches;
-
-	selMatches.push_back(matches[14]);
-	selMatches.push_back(matches[16]);
-	selMatches.push_back(matches[141]);
-	selMatches.push_back(matches[146]);
-	selMatches.push_back(matches[235]);
-	selMatches.push_back(matches[238]);
-	selMatches.push_back(matches[274]);
-	selMatches.push_back(matches[278]);
-
-	std::vector<int> pointIndexes1;
-	std::vector<int> pointIndexes2;
-	for (auto it = selMatches.begin(); it != selMatches.end(); ++it)
-	{
-
-		// Get the indexes of the selected matched keypoints
-		pointIndexes1.push_back(it->queryIdx);
-		pointIndexes2.push_back(it->trainIdx);
-	}
-
-	std::vector<cv::Point2f> selPoints1, selPoints2;
-	cv::KeyPoint::convert(keypoints1, selPoints1, pointIndexes1);
-	cv::KeyPoint::convert(keypoints2, selPoints2, pointIndexes2);
-
-	float** pointCorrespondences = new float* [8]; 
-	for (int i = 0; i < 8; i++) {
-		pointCorrespondences[i] = new float[4];
-	}
-
-	for (int i = 0; i < 8; i++) {
-		pointCorrespondences[i][0] = selPoints1[i].x;
-		pointCorrespondences[i][1] = selPoints1[i].y;
-		pointCorrespondences[i][2] = selPoints2[i].x;
-		pointCorrespondences[i][3] = selPoints2[i].y;
-	}
-	
-	Estimator estimator;
-	float** FMatrix = estimator.estimateFundamentalMatrix(pointCorrespondences);
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			std::cout << FMatrix[i][j] << " ";
-		}
-		std::cout << std::endl;
-	}
-
-	for (int i = 0; i < 8; i++) {
-		delete[] pointCorrespondences[i];
-	}
-	delete[] pointCorrespondences;
-
-	for (int i = 0; i < 3; i++) {
-		delete[] FMatrix[i];
-	}
-	delete[] FMatrix;
-
-	/*cv::Mat fundemental = cv::findFundamentalMat(cv::Mat(selPoints1), // points in first image
-		cv::Mat(selPoints2), // points in second image
-		cv::FM_8POINT);       // 8-point method
-	std::cout << "M = " << std::endl << " " << fundemental << std::endl << std::endl;*/
 }
