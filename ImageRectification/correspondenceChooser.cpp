@@ -1,6 +1,7 @@
 
 #include "opencv2/opencv.hpp"
 #include "correspondenceChooser.h"
+#include <iostream>
 
 Point_Image CorrespondenceChooser::imageToChooseFrom;
 std::vector<float*> CorrespondenceChooser::pointCorrepondences;
@@ -29,15 +30,15 @@ void CorrespondenceChooser::initializeImages(cv::Mat image1, cv::Mat image2) {
 
 void CorrespondenceChooser::CallBackFunc(int event, int x, int y, int flags, void* userdata){
 	if (event == cv::EVENT_LBUTTONDOWN) {
-		if (x <= image1.cols && imageToChooseFrom == Point_Image::IMAGE1) {
+		if (x < image1.cols && imageToChooseFrom == Point_Image::IMAGE1) {
 			currentImage1PointX = x;
 			currentImage1PointY = y;
 			imageToChooseFrom = Point_Image::IMAGE2;
 
-			cv::circle(imageToDisplay1, cv::Point2f(currentImage1PointX, currentImage1PointY), MARK_RADIUS, MARKER_COLOR);
+			cv::circle(imageToDisplay1, cv::Point2f(currentImage1PointX, currentImage1PointY), MARK_RADIUS, MARKER_COLOR, -1);
 			imageToDisplay1WithText = imageToDisplay1.clone();
 		}
-		else if (x > image1.cols && imageToChooseFrom == Point_Image::IMAGE2) {
+		else if (x >= image1.cols && imageToChooseFrom == Point_Image::IMAGE2) {
 			currentImage2PointX = x - image1.cols;
 			currentImage2PointY = y;
 			imageToChooseFrom = Point_Image::IMAGE1;
@@ -52,7 +53,7 @@ void CorrespondenceChooser::CallBackFunc(int event, int x, int y, int flags, voi
 
 			numCorrespondences++;
 
-			cv::circle(imageToDisplay2, cv::Point2f(currentImage2PointX, currentImage2PointY), MARK_RADIUS, MARKER_COLOR);
+			cv::circle(imageToDisplay2, cv::Point2f(currentImage2PointX, currentImage2PointY), MARK_RADIUS, MARKER_COLOR, -1);
 			imageToDisplay2WithText = imageToDisplay2.clone();
 		}
 	}
@@ -60,14 +61,15 @@ void CorrespondenceChooser::CallBackFunc(int event, int x, int y, int flags, voi
 		isWindowClosed = true;
 	}
 	else if (event == cv::EVENT_MOUSEMOVE) {
-		std::string coordsString = "x: " + std::to_string(x) + " y: " + std::to_string(y);
-		if (x <= image1.cols) {			
+		if (x < image1.cols) {			
+			std::string coordsString = "x: " + std::to_string(x) + " y: " + std::to_string(y) + " #p: " + std::to_string(numCorrespondences);
 			imageToDisplay1WithText = imageToDisplay1.clone();
-			cv::putText(imageToDisplay1WithText, coordsString, cv::Point2f(image1.cols - TXT_OFFSET_X, image1.rows - TXT_OFFSET_Y), cv::FONT_HERSHEY_DUPLEX, 1, TXT_COLOR);
+			cv::putText(imageToDisplay1WithText, coordsString, cv::Point2f(0, image1.rows - TXT_OFFSET_Y), cv::FONT_HERSHEY_DUPLEX, 1, TXT_COLOR);
 		}
 		else {
+			std::string coordsString = "x: " + std::to_string(x - image1.cols) + " y: " + std::to_string(y) + " #p: " + std::to_string(numCorrespondences);
 			imageToDisplay2WithText = imageToDisplay2.clone();
-			cv::putText(imageToDisplay2WithText, coordsString, cv::Point2f(image2.cols - TXT_OFFSET_X, image2.rows - TXT_OFFSET_Y), cv::FONT_HERSHEY_DUPLEX, 1, TXT_COLOR);
+			cv::putText(imageToDisplay2WithText, coordsString, cv::Point2f(0, image2.rows - TXT_OFFSET_Y), cv::FONT_HERSHEY_DUPLEX, 1, TXT_COLOR);
 		}
 	}
 	if (imageToDisplay1WithText.dims != 0 && imageToDisplay2WithText.dims != 0) {

@@ -5,10 +5,9 @@
 #include"opencv2/opencv.hpp"
 
 #define MARK_RADIUS 5
-#define TXT_OFFSET_X 50		// will be subtracted from image width
 #define TXT_OFFSET_Y 20		// will be subtracted from image height
-#define MARKER_COLOR cv::Scalar(255,0,0)
-#define TXT_COLOR cv::Scalar(0,0,0)
+#define MARKER_COLOR cv::Scalar(0,0,255)
+#define TXT_COLOR cv::Scalar(0,0,255)
 
 enum Point_Image { IMAGE1, IMAGE2 };
 

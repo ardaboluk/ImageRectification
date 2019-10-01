@@ -119,34 +119,7 @@ double** Estimator::estimateFundamentalMatrix(float** pointCorrespondences, int 
 	return denormalizedFMatrix;
 }
 
-//DEBUG
 cv::Mat Estimator::estimateMatrixDebug(float** pointCorrespondences, int numPoints) {
-
-	// find widths and heights in both images for normalization and denormalization
-	float maxX1 = abs(pointCorrespondences[0][0]), maxY1 = abs(pointCorrespondences[0][1]),
-		maxX2 = abs(pointCorrespondences[0][2]), maxY2 = abs(pointCorrespondences[0][3]);
-	for (int i = 1; i < numPoints; i++) {
-		if (abs(pointCorrespondences[i][0]) > maxX1) {
-			maxX1 = abs(pointCorrespondences[i][0]);
-		}
-		if (abs(pointCorrespondences[i][1]) > maxY1) {
-			maxY1 = abs(pointCorrespondences[i][1]);
-		}
-		if (abs(pointCorrespondences[i][2]) > maxX2) {
-			maxX2 = (pointCorrespondences[i][2]);
-		}
-		if (abs(pointCorrespondences[i][3]) > maxY2) {
-			maxY2 = abs(pointCorrespondences[i][3]);
-		}
-	}
-
-	float image1Width = maxX1;
-	float image1Height = maxY1;
-	float image2Width = maxX2;
-	float image2Height = maxY2;
-
-	// normalize image points
-	float** normalizedPointCorrespondences = Preprocessing::normalizeCoordinates(pointCorrespondences, image1Width, image1Height, image2Width, image2Height, numPoints);
 
 	cv::Mat points1 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
 	cv::Mat points2 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
@@ -158,11 +131,6 @@ cv::Mat Estimator::estimateMatrixDebug(float** pointCorrespondences, int numPoin
 	}
 
 	cv::Mat FMat = cv::findFundamentalMat(points1, points2, cv::FM_8POINT);
-
-	for (int i = 0; i < numPoints; i++) {
-		delete[] normalizedPointCorrespondences[i];
-	}
-	delete[] normalizedPointCorrespondences;
 
 	return FMat;
 }
