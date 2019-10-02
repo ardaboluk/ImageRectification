@@ -17,11 +17,23 @@
 // These methods check a given fundamental matrix if they pass the test xFx' = 0 for each given point
 void checkFundamentalMatrix(double**, float**);
 void checkFundamentalMatrix(cv::Mat&, cv::Mat&, cv::Mat&);
+void getFileNamesFromUser();
 
-int main() {
+std::string image1FileName;
+std::string image2FileName;
 
-	cv::Mat image1 = cv::imread("img1.jpg");
-	cv::Mat image2 = cv::imread("img2.jpg");
+int main(int argc, char* argv[]) {
+
+	if (argc > 2) {
+		image1FileName = argv[1];
+		image2FileName = argv[2];
+	}
+	else {
+		getFileNamesFromUser();
+	}
+
+	cv::Mat image1 = cv::imread(image1FileName);
+	cv::Mat image2 = cv::imread(image2FileName);
 
 	// Choose correspondences manually
 	CorrespondenceChooser::initializeImages(image1, image2);
@@ -42,7 +54,7 @@ int main() {
 	Estimator estimator;
 
 	//DEBUG
-	/*cv::Mat FMat = estimator.estimateMatrixDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
+	cv::Mat FMat = estimator.estimateMatrixDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
 	std::cout << FMat.type() << std::endl;
 	std::vector<cv::Mat> lines = Rectification::getEpilinesDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat);
 	cv::Mat image1EpilinesCopyDebug = image1.clone();
@@ -64,7 +76,7 @@ int main() {
 	cv::namedWindow("Image2 transformed debug");
 	cv::imshow("Image1 transformed debug", image1TransformedDebug);
 	cv::imshow("Image2 transformed debug", image2TransformedDebug);
-	cv::waitKey(0);*/
+	cv::waitKey(0);
 
 	double** FMatrix = estimator.estimateFundamentalMatrix(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
 
@@ -145,6 +157,26 @@ int main() {
 	return 0;
 }
 
+void getFileNamesFromUser() {
+
+	std::string outputFileName = "";
+
+	std::cout << "Please enter the file name of the first image." << std::endl;
+	std::string tmp = "";
+	while (tmp == "") {
+		std::cin >> tmp;
+	}
+	image1FileName = tmp;
+
+	std::cout << "Please enter the file name of the second image." << std::endl;
+	tmp = "";
+	while (tmp == "") {
+		std::cin >> tmp;
+	}
+	image2FileName = tmp;
+}
+
+
 void checkFundamentalMatrix(double** fundamentalMatrix, float** correspondences) {
 	/*
 	* Checks if the given fundamental matrix satisfies the equation xFx' ~ 0 for each point.
@@ -185,439 +217,4 @@ void checkFundamentalMatrix(cv::Mat& fundamentalMatrix, cv::Mat& points1, cv::Ma
 		std::cout << resultMat << std::endl;
 	}
 	std::cout << std::endl;
-}
-
-void testEstimator() {
-	cv::Mat image1 = cv::imread("img1.jpg", 0);
-	cv::Mat image2 = cv::imread("img2.jpg", 0);
-	if (!image1.data || !image2.data)
-		return;
-
-	std::vector<cv::KeyPoint> keypoints1;
-	std::vector<cv::KeyPoint> keypoints2;
-
-	cv::Ptr<cv::ORB> surf = cv::ORB::create();
-
-	surf->detect(image1, keypoints1);
-	surf->detect(image2, keypoints2);
-
-	std::cout << "Number of SURF points (1): " << keypoints1.size() << std::endl;
-	std::cout << "Number of SURF points (2): " << keypoints2.size() << std::endl;
-
-	cv::Mat descriptors1, descriptors2;
-	surf->compute(image1, keypoints1, descriptors1);
-	surf->compute(image2, keypoints2, descriptors2);
-
-	cv::Ptr<cv::BFMatcher> matcher = cv::BFMatcher::create();
-
-	std::vector<cv::DMatch> matches;
-	matcher->match(descriptors1, descriptors2, matches);
-
-	std::cout << "Number of matched points: " << matches.size() << std::endl;
-
-	std::vector<cv::DMatch> selMatches;
-
-	selMatches.push_back(matches[14]);
-	selMatches.push_back(matches[16]);
-	selMatches.push_back(matches[141]);
-	selMatches.push_back(matches[146]);
-	selMatches.push_back(matches[235]);
-	selMatches.push_back(matches[238]);
-	selMatches.push_back(matches[274]);
-	selMatches.push_back(matches[278]);
-
-	std::vector<int> pointIndexes1;
-	std::vector<int> pointIndexes2;
-	for (auto it = selMatches.begin(); it != selMatches.end(); ++it)
-	{
-		// Get the indexes of the selected matched keypoints
-		pointIndexes1.push_back(it->queryIdx);
-		pointIndexes2.push_back(it->trainIdx);
-	}
-
-	std::vector<cv::Point2f> selPoints1, selPoints2;
-	cv::KeyPoint::convert(keypoints1, selPoints1, pointIndexes1);
-	cv::KeyPoint::convert(keypoints2, selPoints2, pointIndexes2);
-
-	float** pointCorrespondences = new float* [8];
-	for (int i = 0; i < 8; i++) {
-		pointCorrespondences[i] = new float[4];
-	}
-
-	for (int i = 0; i < 8; i++) {
-		pointCorrespondences[i][0] = selPoints1[i].x;
-		pointCorrespondences[i][1] = selPoints1[i].y;
-		pointCorrespondences[i][2] = selPoints2[i].x;
-		pointCorrespondences[i][3] = selPoints2[i].y;
-	}
-
-	Estimator estimator;
-	double** FMatrix = estimator.estimateFundamentalMatrix(pointCorrespondences, selPoints1.size());
-	//DEBUG
-	Util::displayMat(FMatrix, 3, 3, "FMatrix");
-	checkFundamentalMatrix(FMatrix, pointCorrespondences);
-
-	//DEBUG
-	cv::Mat FMatrix_debug = estimator.estimateMatrixDebug(pointCorrespondences, selPoints1.size());
-	Util::displayMat(FMatrix_debug, "FMatrix_debug");
-	cv::Mat selPoints1Mat = cv::Mat(selPoints1);
-	cv::Mat selPoints2Mat = cv::Mat(selPoints2);
-	checkFundamentalMatrix(FMatrix_debug, selPoints1Mat, selPoints2Mat);
-
-	float** epilines = Rectification::getEpilines(pointCorrespondences, selPoints1.size(), FMatrix);
-	cv::Mat image1EpilinesCopy = image1.clone();
-	cv::Mat image2EpilinesCopy = image2.clone();
-	Rectification::drawEpilines(epilines, selPoints1.size(), image1EpilinesCopy, image2EpilinesCopy);
-	cv::namedWindow("Epilines1");
-	cv::namedWindow("Epilines2");
-	cv::imshow("Epilines1", image1EpilinesCopy);
-	cv::imshow("Epilines2", image2EpilinesCopy);
-	cv::waitKey(0);
-
-	//DEBUG
-	cv::Mat image1EpilinesDebugCopy = image1.clone();
-	cv::Mat image2EpilinesDebugCopy = image2.clone();
-	std::vector<cv::Vec3f> lines1;
-	std::vector<cv::Vec3f> lines2;
-	cv::computeCorrespondEpilines(cv::Mat(selPoints1), 1, FMatrix_debug, lines1);
-	cv::computeCorrespondEpilines(cv::Mat(selPoints2), 1, FMatrix_debug.t(), lines2);
-	for (auto it = lines1.begin(); it != lines1.end(); ++it){
-		cv::line(image2EpilinesDebugCopy, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image2EpilinesDebugCopy.cols, -((*it)[2] + (*it)[0] * image2EpilinesDebugCopy.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-	for (auto it = lines2.begin(); it != lines2.end(); ++it) {
-		cv::line(image1EpilinesDebugCopy, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image1EpilinesDebugCopy.cols, -((*it)[2] + (*it)[0] * image1EpilinesDebugCopy.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-	cv::namedWindow("EpilinesDebug1");
-	cv::namedWindow("EpilinesDebug2");
-	cv::imshow("EpilinesDebug1", image1EpilinesDebugCopy);
-	cv::imshow("EpilinesDebug2", image2EpilinesDebugCopy);
-	cv::waitKey(0);
-
-	//DEBUG
-	Util::displayMat(epilines, selPoints1.size(), 6, "Epilines");
-
-	image1.release();
-	image2.release();
-	image1EpilinesCopy.release();
-	image2EpilinesCopy.release();
-
-	for (int i = 0; i < selPoints1.size(); i++) {
-		delete[] pointCorrespondences[i];
-		delete[] epilines[i];
-	}
-	delete[] pointCorrespondences;
-	delete[] epilines;
-
-	for (int i = 0; i < 3; i++) {
-		delete[] FMatrix[i];
-	}
-	delete[] FMatrix;
-}
-
-void testFundamental() {
-
-	// from
-	// github.com/vinjn/opencv-2-cookbook-src/blob/master/Chapter%2009/estimateF.cpp
-
-	// Read input images
-	cv::Mat image1 = cv::imread("img1.jpg", 0);
-	cv::Mat image2 = cv::imread("img2.jpg", 0);
-	if (!image1.data || !image2.data)
-		return;
-
-	// Display the images
-	cv::namedWindow("Right Image");
-	cv::imshow("Right Image", image1);
-	cv::namedWindow("Left Image");
-	cv::imshow("Left Image", image2);
-
-	// vector of keypoints
-	std::vector<cv::KeyPoint> keypoints1;
-	std::vector<cv::KeyPoint> keypoints2;
-
-	// Construction of the SURF feature detector
-	auto surf = cv::ORB::create();
-
-	// Detection of the SURF features
-	surf->detect(image1, keypoints1);
-	surf->detect(image2, keypoints2);
-
-	std::cout << "Number of SURF points (1): " << keypoints1.size() << std::endl;
-	std::cout << "Number of SURF points (2): " << keypoints2.size() << std::endl;
-
-	// Draw the kepoints
-	cv::Mat imageKP;
-	cv::drawKeypoints(image1, keypoints1, imageKP, cv::Scalar(255, 255, 255),
-		cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-	cv::namedWindow("Right SURF Features");
-	cv::imshow("Right SURF Features", imageKP);
-	cv::drawKeypoints(image2, keypoints2, imageKP, cv::Scalar(255, 255, 255),
-		cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-	cv::namedWindow("Left SURF Features");
-	cv::imshow("Left SURF Features", imageKP);
-
-	// Extraction of the SURF descriptors
-	cv::Mat descriptors1, descriptors2;
-	surf->compute(image1, keypoints1, descriptors1);
-	surf->compute(image2, keypoints2, descriptors2);
-
-	std::cout << "descriptor matrix size: " << descriptors1.rows << " by " << descriptors1.cols
-		<< std::endl;
-
-	// Construction of the matcher
-	auto matcher = cv::BFMatcher::create();
-
-	// Match the two image descriptors
-	std::vector<cv::DMatch> matches;
-	matcher->match(descriptors1, descriptors2, matches);
-
-	std::cout << "Number of matched points: " << matches.size() << std::endl;
-
-	// Select few Matches
-	std::vector<cv::DMatch> selMatches;
-
-	/* between church01 and church03 */
-	selMatches.push_back(matches[14]);
-	selMatches.push_back(matches[16]);
-	selMatches.push_back(matches[141]);
-	selMatches.push_back(matches[146]);
-	selMatches.push_back(matches[235]);
-	selMatches.push_back(matches[238]);
-	selMatches.push_back(matches[274]);
-	selMatches.push_back(matches[278]);
-
-	// Draw the selected matches
-	cv::Mat imageMatches;
-	cv::drawMatches(
-		image1, keypoints1, // 1st image and its keypoints
-		image2, keypoints2, // 2nd image and its keypoints
-		//					selMatches,			// the matches
-		matches,                    // the matches
-		imageMatches,               // the image produced
-		cv::Scalar(255, 255, 255)); // color of the lines
-	cv::namedWindow("Matches");
-	cv::imshow("Matches", imageMatches);
-
-	// Convert 1 vector of keypoints into
-	// 2 vectors of Point2f
-	std::vector<int> pointIndexes1;
-	std::vector<int> pointIndexes2;
-	for (auto it = selMatches.begin(); it != selMatches.end(); ++it)
-	{
-
-		// Get the indexes of the selected matched keypoints
-		pointIndexes1.push_back(it->queryIdx);
-		pointIndexes2.push_back(it->trainIdx);
-	}
-
-	// Convert keypoints into Point2f
-	std::vector<cv::Point2f> selPoints1, selPoints2;
-	cv::KeyPoint::convert(keypoints1, selPoints1, pointIndexes1);
-	cv::KeyPoint::convert(keypoints2, selPoints2, pointIndexes2);
-
-	// check by drawing the points
-	auto it = selPoints1.begin();
-	while (it != selPoints1.end())
-	{
-
-		// draw a circle at each corner location
-		cv::circle(image1, *it, 3, cv::Scalar(255, 255, 255), 2);
-		++it;
-	}
-
-	it = selPoints2.begin();
-	while (it != selPoints2.end())
-	{
-
-		// draw a circle at each corner location
-		cv::circle(image2, *it, 3, cv::Scalar(255, 255, 255), 2);
-		++it;
-	}
-
-	// Compute F matrix from 8 matches
-	cv::Mat fundemental = cv::findFundamentalMat(cv::Mat(selPoints1), // points in first image
-		cv::Mat(selPoints2), // points in second image
-		cv::FM_8POINT);       // 7-point method
-	std::cout << "M = " << std::endl << " " << fundemental << std::endl << std::endl;
-
-	//DEBUG
-	cv::Mat selPoints1Mat = cv::Mat(selPoints1);
-	cv::Mat selPoints2Mat = cv::Mat(selPoints2);
-	checkFundamentalMatrix(fundemental, selPoints1Mat, selPoints2Mat);
-
-	std::cout << "F-Matrix size= " << fundemental.rows << "," << fundemental.cols << std::endl;
-
-	// draw the left points corresponding epipolar lines in right image
-	std::vector<cv::Vec3f> lines1;
-	cv::computeCorrespondEpilines(cv::Mat(selPoints1), // image points
-		1,                   // in image 1 (can also be 2)
-		fundemental,         // F matrix
-		lines1);             // vector of epipolar lines
-
-// for all epipolar lines
-	for (auto it = lines1.begin(); it != lines1.end(); ++it)
-	{
-
-		// draw the epipolar line between first and last column
-		cv::line(image2, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image2.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-
-	// draw the left points corresponding epipolar lines in left image
-	std::vector<cv::Vec3f> lines2;
-	cv::computeCorrespondEpilines(cv::Mat(selPoints2), 2, fundemental, lines2);
-	for (auto it = lines2.begin(); it != lines2.end(); ++it)
-	{
-
-		// draw the epipolar line between first and last column
-		cv::line(image1, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image1.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-
-	// Display the images with points and epipolar lines
-	cv::namedWindow("Right Image Epilines");
-	cv::imshow("Right Image Epilines", image1);
-	cv::namedWindow("Left Image Epilines");
-	cv::imshow("Left Image Epilines", image2);
-
-	/*
-	std::nth_element(matches.begin(),    // initial position
-					 matches.begin()+matches.size()/2, // 50%
-					 matches.end());     // end position
-	// remove all elements after the
-	matches.erase(matches.begin()+matches.size()/2, matches.end());
-*/
-// Convert keypoints into Point2f
-	std::vector<cv::Point2f> points1, points2;
-	for (auto it = matches.begin(); it != matches.end(); ++it)
-	{
-
-		// Get the position of left keypoints
-		float x = keypoints1[it->queryIdx].pt.x;
-		float y = keypoints1[it->queryIdx].pt.y;
-		points1.push_back(cv::Point2f(x, y));
-		// Get the position of right keypoints
-		x = keypoints2[it->trainIdx].pt.x;
-		y = keypoints2[it->trainIdx].pt.y;
-		points2.push_back(cv::Point2f(x, y));
-	}
-
-	std::cout << points1.size() << " " << points2.size() << std::endl;
-
-	// Compute F matrix using RANSAC
-	std::vector<uchar> inliers(points1.size(), 0);
-	fundemental = cv::findFundamentalMat(cv::Mat(points1), cv::Mat(points2), // matching points
-		inliers,      // match status (inlier ou outlier)
-		cv::FM_RANSAC, // RANSAC method
-		1,            // distance to epipolar line
-		0.98);        // confidence probability
-
-// Read input images
-	image1 = cv::imread("img1.jpg", 0);
-	image2 = cv::imread("img2.jpg", 0);
-
-	// Draw the epipolar line of few points
-	cv::computeCorrespondEpilines(cv::Mat(selPoints1), 1, fundemental, lines1);
-	for (auto it = lines1.begin(); it != lines1.end(); ++it)
-	{
-
-		cv::line(image2, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image2.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-
-	cv::computeCorrespondEpilines(cv::Mat(selPoints2), 2, fundemental, lines2);
-	for (auto it = lines2.begin(); it != lines2.end(); ++it)
-	{
-
-		cv::line(image1, cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image1.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-
-	// Draw the inlier points
-	std::vector<cv::Point2f> points1In, points2In;
-	auto itPts = points1.begin();
-	auto itIn = inliers.begin();
-	while (itPts != points1.end())
-	{
-
-		// draw a circle at each inlier location
-		if (*itIn)
-		{
-			cv::circle(image1, *itPts, 3, cv::Scalar(255, 255, 255), 2);
-			points1In.push_back(*itPts);
-		}
-		++itPts;
-		++itIn;
-	}
-
-	itPts = points2.begin();
-	itIn = inliers.begin();
-	while (itPts != points2.end())
-	{
-
-		// draw a circle at each inlier location
-		if (*itIn)
-		{
-			cv::circle(image2, *itPts, 3, cv::Scalar(255, 255, 255), 2);
-			points2In.push_back(*itPts);
-		}
-		++itPts;
-		++itIn;
-	}
-
-	// Display the images with points
-	cv::namedWindow("Right Image Epilines (RANSAC)");
-	cv::imshow("Right Image Epilines (RANSAC)", image1);
-	cv::namedWindow("Left Image Epilines (RANSAC)");
-	cv::imshow("Left Image Epilines (RANSAC)", image2);
-
-	cv::findHomography(cv::Mat(points1In), cv::Mat(points2In), inliers, cv::RANSAC, 1.);
-
-	// Read input images
-	image1 = cv::imread("img1.jpg", 0);
-	image2 = cv::imread("img2.jpg", 0);
-
-	// Draw the inlier points
-	itPts = points1In.begin();
-	itIn = inliers.begin();
-	while (itPts != points1In.end())
-	{
-
-		// draw a circle at each inlier location
-		if (*itIn)
-			cv::circle(image1, *itPts, 3, cv::Scalar(255, 255, 255), 2);
-
-		++itPts;
-		++itIn;
-	}
-
-	itPts = points2In.begin();
-	itIn = inliers.begin();
-	while (itPts != points2In.end())
-	{
-
-		// draw a circle at each inlier location
-		if (*itIn)
-			cv::circle(image2, *itPts, 3, cv::Scalar(255, 255, 255), 2);
-
-		++itPts;
-		++itIn;
-	}
-
-	// Display the images with points
-	cv::namedWindow("Right Image Homography (RANSAC)");
-	cv::imshow("Right Image Homography (RANSAC)", image1);
-	cv::namedWindow("Left Image Homography (RANSAC)");
-	cv::imshow("Left Image Homography (RANSAC)", image2);
-
-	cv::waitKey();
-	return;
 }

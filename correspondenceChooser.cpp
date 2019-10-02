@@ -83,14 +83,14 @@ float** CorrespondenceChooser::getPointCorrespondences() {
 		return NULL;
 	}
 	float** correspondences = new float* [pointCorrepondences.size()];
-	for (int i = 0; i < pointCorrepondences.size(); i++) {
+	for (unsigned int i = 0; i < pointCorrepondences.size(); i++) {
 		correspondences[i] = new float[4];
 		correspondences[i][0] = pointCorrepondences.at(i)[0];
 		correspondences[i][1] = pointCorrepondences.at(i)[1];
 		correspondences[i][2] = pointCorrepondences.at(i)[2];
 		correspondences[i][3] = pointCorrepondences.at(i)[3];
 	}
-	for (int i = 0; i < pointCorrepondences.size(); i++) {
+	for (unsigned int i = 0; i < pointCorrepondences.size(); i++) {
 		delete[] pointCorrepondences.at(i);
 	}
 	return correspondences;
