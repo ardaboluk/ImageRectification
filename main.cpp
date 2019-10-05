@@ -14,17 +14,26 @@
 #include "rectification.h"
 #include "correspondenceChooser.h"
 
+//DEBUG
+using namespace cv;
+
 // These methods check a given fundamental matrix if they pass the test xFx' = 0 for each given point
 void checkFundamentalMatrix(double**, float**);
 void checkFundamentalMatrix(cv::Mat&, cv::Mat&, cv::Mat&);
 void getFileNamesFromUser();
+
+void debugWithOpenCV(std::string image1FileName, std::string image2FileName);
+void debugEstimator(std::string image1FileName, std::string image2FileName);
+void debugSaveCorrespondencesToMat(cv::Mat correspondences, std::string filename);
 
 std::string image1FileName;
 std::string image2FileName;
 
 int main(int argc, char* argv[]) {
 
-	if (argc > 2) {
+	debugWithOpenCV("img1.jpg", "img2.jpg");
+	
+	/*if (argc > 2) {
 		image1FileName = argv[1];
 		image2FileName = argv[2];
 	}
@@ -52,31 +61,6 @@ int main(int argc, char* argv[]) {
 
 	// Estimate fundamental matrix
 	Estimator estimator;
-
-	//DEBUG
-	cv::Mat FMat = estimator.estimateMatrixDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
-	std::cout << FMat.type() << std::endl;
-	std::vector<cv::Mat> lines = Rectification::getEpilinesDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat);
-	cv::Mat image1EpilinesCopyDebug = image1.clone();
-	cv::Mat image2EpilinesCopyDebug = image2.clone();
-	Rectification::drawEpilinesDebug(lines, CorrespondenceChooser::numCorrespondences, image1EpilinesCopyDebug, image2EpilinesCopyDebug);
-	cv::namedWindow("Epilines1 Debug");
-	cv::namedWindow("Epilines2 Debug");
-	cv::imshow("Epilines1 Debug", image1EpilinesCopyDebug);
-	cv::imshow("Epilines2 Debug", image2EpilinesCopyDebug);
-	cv::waitKey(0);
-	cv::Mat H1CV(cv::Size(3, 3), CV_64FC1);
-	cv::Mat H2CV(cv::Size(3, 3), CV_64FC1);
-	Rectification::rectifyUncalibratedDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat, image1.rows, image1.cols, H1CV, H2CV);
-	cv::Mat image1TransformedDebug(image1.size(), image1.type());
-	cv::Mat image2TransformedDebug(image2.size(), image2.type());
-	cv::warpPerspective(image1, image1TransformedDebug, H1CV, image1TransformedDebug.size());
-	cv::warpPerspective(image2, image2TransformedDebug, H2CV, image2TransformedDebug.size());
-	cv::namedWindow("Image1 transformed debug");
-	cv::namedWindow("Image2 transformed debug");
-	cv::imshow("Image1 transformed debug", image1TransformedDebug);
-	cv::imshow("Image2 transformed debug", image2TransformedDebug);
-	cv::waitKey(0);
 
 	double** FMatrix = estimator.estimateFundamentalMatrix(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
 
@@ -152,7 +136,7 @@ int main(int argc, char* argv[]) {
 	}
 	delete[] FMatrix;
 	delete[] H1;
-	delete[] H2;
+	delete[] H2;*/
 
 	return 0;
 }
@@ -217,4 +201,129 @@ void checkFundamentalMatrix(cv::Mat& fundamentalMatrix, cv::Mat& points1, cv::Ma
 		std::cout << resultMat << std::endl;
 	}
 	std::cout << std::endl;
+}
+
+void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
+
+	cv::Mat image1 = cv::imread(image1FileName);
+	cv::Mat image2 = cv::imread(image2FileName);
+
+	std::vector<KeyPoint> keypoints_1, keypoints_2;
+    Mat descriptors_1, descriptors_2;
+    Ptr<FeatureDetector> detector = ORB::create();
+    Ptr<DescriptorExtractor> descriptor = ORB::create();
+    
+    Ptr<DescriptorMatcher> matcher  = DescriptorMatcher::create ( "BruteForce-Hamming" );
+
+    detector->detect ( image1,keypoints_1 );
+    detector->detect ( image2,keypoints_2 );
+
+    descriptor->compute ( image1, keypoints_1, descriptors_1 );
+    descriptor->compute ( image2, keypoints_2, descriptors_2 );
+
+    Mat outimg1;
+    drawKeypoints( image1, keypoints_1, outimg1, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
+    imshow("ORB特征点",outimg1);
+
+    std::vector<DMatch> matches;
+    //BFMatcher matcher ( NORM_HAMMING );
+    matcher->match ( descriptors_1, descriptors_2, matches );
+
+    double min_dist=10000, max_dist=0;
+
+    for ( int i = 0; i < descriptors_1.rows; i++ )
+    {
+        double dist = matches[i].distance;
+        if ( dist < min_dist ) min_dist = dist;
+        if ( dist > max_dist ) max_dist = dist;
+    }
+
+    printf ( "-- Max dist : %f \n", max_dist );
+    printf ( "-- Min dist : %f \n", min_dist );
+
+    std::vector< DMatch > good_matches;
+    for ( int i = 0; (unsigned int)i < descriptors_1.rows; i++ )
+    {
+        if ( matches[i].distance <= max ( 2*min_dist, 30.0 ) )
+        {
+            good_matches.push_back ( matches[i] );
+        }
+    }
+
+    Mat img_match;
+    Mat img_goodmatch;
+    drawMatches ( image1, keypoints_1, image2, keypoints_2, matches, img_match );
+    drawMatches ( image1, keypoints_1, image2, keypoints_2, good_matches, img_goodmatch );
+    imshow ( "所有匹配点对", img_match );
+    imshow ( "优化后匹配点对", img_goodmatch );
+    waitKey(0);
+
+	std::vector<cv::Point2f> correspondingPoints1;
+	std::vector<cv::Point2f> correspondingPoints2;
+	for(int i = 0; i < good_matches.size(); i++){
+		int idx1 = good_matches[i].trainIdx;
+		int idx2 = good_matches[i].queryIdx;
+		correspondingPoints1.push_back(keypoints_1[idx1].pt);
+		correspondingPoints2.push_back(keypoints_2[idx2].pt);
+	}
+	
+	cv::Mat FMat;
+	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2);
+	cv::Mat H1, H2;
+
+	std::cout << correspondingPoints1.size() << " " << correspondingPoints2.size() << std::endl;
+	std::cout << FMat.rows << " " << FMat.cols << std::endl;
+	
+	cv::stereoRectifyUncalibrated(correspondingPoints1, correspondingPoints2, FMat, 
+		cv::Size(image1.cols, image1.rows), H1, H2);
+	cv::Mat image1_rectified;
+	cv::Mat image2_rectified;
+	cv::warpPerspective(image1, image1_rectified, H1, cv::Size(image1.cols, image1.rows));
+	cv::warpPerspective(image2, image2_rectified, H2, cv::Size(image2.cols, image2.rows));
+
+	cv::namedWindow("Rectified1");
+	cv::imshow("Rectified1", image1_rectified);
+	cv::namedWindow("Rectified2");
+	cv::imshow("Rectified2", image2_rectified);
+	cv::waitKey(0);
+}
+
+void debugEstimator(std::string image1FileName, std::string image2FileName){
+	//init point correspondences
+	/*float** pointCorrespondences = new float*[8];
+	for(int i = 0; i < 8; i++){
+		pointCorrespondences[i] = new float[4];
+	}
+
+	//find fundamental matrix using OpenCV
+	Estimator estimator;
+	cv::Mat FMat = estimator.estimateMatrixDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
+	std::cout << FMat.type() << std::endl;
+	std::vector<cv::Mat> lines = Rectification::getEpilinesDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat);
+	cv::Mat image1 = cv::imread("img1.jpg");
+	cv::Mat image2 = cv::imread("img2.jpg");
+	cv::Mat image1EpilinesCopyDebug = image1.clone();
+	cv::Mat image2EpilinesCopyDebug = image2.clone();
+	Rectification::drawEpilinesDebug(lines, CorrespondenceChooser::numCorrespondences, image1EpilinesCopyDebug, image2EpilinesCopyDebug);
+	cv::namedWindow("Epilines1 Debug");
+	cv::namedWindow("Epilines2 Debug");
+	cv::imshow("Epilines1 Debug", image1EpilinesCopyDebug);
+	cv::imshow("Epilines2 Debug", image2EpilinesCopyDebug);
+	cv::waitKey(0);
+	cv::Mat H1CV(cv::Size(3, 3), CV_64FC1);
+	cv::Mat H2CV(cv::Size(3, 3), CV_64FC1);
+	Rectification::rectifyUncalibratedDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat, image1.rows, image1.cols, H1CV, H2CV);
+	cv::Mat image1TransformedDebug(image1.size(), image1.type());
+	cv::Mat image2TransformedDebug(image2.size(), image2.type());
+	cv::warpPerspective(image1, image1TransformedDebug, H1CV, image1TransformedDebug.size());
+	cv::warpPerspective(image2, image2TransformedDebug, H2CV, image2TransformedDebug.size());
+	cv::namedWindow("Image1 transformed debug");
+	cv::namedWindow("Image2 transformed debug");
+	cv::imshow("Image1 transformed debug", image1TransformedDebug);
+	cv::imshow("Image2 transformed debug", image2TransformedDebug);
+	cv::waitKey(0);
+	for (int i = 0; i < CorrespondenceChooser::numCorrespondences; i++) {
+		delete[] pointCorrespondences[i];
+	}
+	delete[] pointCorrespondences;*/
 }

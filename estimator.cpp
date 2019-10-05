@@ -118,19 +118,3 @@ double** Estimator::estimateFundamentalMatrix(float** pointCorrespondences, int 
 
 	return denormalizedFMatrix;
 }
-
-cv::Mat Estimator::estimateMatrixDebug(float** pointCorrespondences, int numPoints) {
-
-	cv::Mat points1 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
-	cv::Mat points2 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
-	for (int i = 0; i < numPoints; i++) {
-		points1.at<double>(i, 0) = pointCorrespondences[i][0];
-		points1.at<double>(i, 1) = pointCorrespondences[i][1];
-		points2.at<double>(i, 0) = pointCorrespondences[i][2];
-		points2.at<double>(i, 1) = pointCorrespondences[i][3];
-	}
-
-	cv::Mat FMat = cv::findFundamentalMat(points1, points2, cv::FM_8POINT);
-
-	return FMat;
-}
