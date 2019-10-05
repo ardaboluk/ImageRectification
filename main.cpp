@@ -227,7 +227,7 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 
     std::vector<DMatch> matches;
     //BFMatcher matcher ( NORM_HAMMING );
-    matcher->match ( descriptors_1, descriptors_2, matches );
+    matcher->match (descriptors_1, descriptors_2, matches );
 
     double min_dist=10000, max_dist=0;
 
@@ -252,8 +252,8 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 
     Mat img_match;
     Mat img_goodmatch;
-    drawMatches ( image1, keypoints_1, image2, keypoints_2, matches, img_match );
-    drawMatches ( image1, keypoints_1, image2, keypoints_2, good_matches, img_goodmatch );
+    drawMatches (image1, keypoints_1, image2, keypoints_2, matches, img_match );
+    drawMatches (image1, keypoints_1, image2, keypoints_2, good_matches, img_goodmatch );
     imshow ( "所有匹配点对", img_match );
     imshow ( "优化后匹配点对", img_goodmatch );
     waitKey(0);
@@ -261,8 +261,8 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 	std::vector<cv::Point2f> correspondingPoints1;
 	std::vector<cv::Point2f> correspondingPoints2;
 	for(int i = 0; i < good_matches.size(); i++){
-		int idx1 = good_matches[i].trainIdx;
-		int idx2 = good_matches[i].queryIdx;
+		int idx1 = good_matches[i].queryIdx;
+		int idx2 = good_matches[i].trainIdx;
 		correspondingPoints1.push_back(keypoints_1[idx1].pt);
 		correspondingPoints2.push_back(keypoints_2[idx2].pt);
 	}
@@ -270,21 +270,69 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2);
 	cv::Mat H1, H2;
-
-	std::cout << correspondingPoints1.size() << " " << correspondingPoints2.size() << std::endl;
-	std::cout << FMat.rows << " " << FMat.cols << std::endl;
 	
 	cv::stereoRectifyUncalibrated(correspondingPoints1, correspondingPoints2, FMat, 
-		cv::Size(image1.cols, image1.rows), H1, H2);
-	cv::Mat image1_rectified;
-	cv::Mat image2_rectified;
-	cv::warpPerspective(image1, image1_rectified, H1, cv::Size(image1.cols, image1.rows));
-	cv::warpPerspective(image2, image2_rectified, H2, cv::Size(image2.cols, image2.rows));
+		cv::Size(image1.cols, image1.rows), H1, H2, 3);
 
-	cv::namedWindow("Rectified1");
-	cv::imshow("Rectified1", image1_rectified);
-	cv::namedWindow("Rectified2");
-	cv::imshow("Rectified2", image2_rectified);
+	std::vector<cv::Vec3f> linesOnImage2, linesOnImage1;
+	cv::computeCorrespondEpilines(correspondingPoints1, 1, FMat, linesOnImage2);
+	cv::computeCorrespondEpilines(correspondingPoints2, 2, FMat, linesOnImage1);
+
+	cv::Mat image1WithEpilines = image1.clone();
+	cv::Mat image2WithEpilines = image2.clone();
+
+	for(auto it = linesOnImage1.begin(); it != linesOnImage1.end(); ++it){
+		double a1 = (*it)[0];
+		double b1 = (*it)[1];
+		double c1 = (*it)[2];
+		double a1Transformed = a1; // H1.at<double>(0,0) * a1 + H1.at<double>(0,1) * b1 + H1.at<double>(0,2) * c1;
+		double b1Transformed = b1; // H1.at<double>(1,0) * a1 + H1.at<double>(1,1) * b1 + H1.at<double>(1,2) * c1;
+		double c1Transformed = c1; // H1.at<double>(2,0) * a1 + H1.at<double>(2,1) * b1 + H1.at<double>(2,2) * c1;
+		double p1StartX = 0;
+		double p1StartY = -c1Transformed / b1Transformed;
+		double p1EndX = image1.cols;
+		double p1EndY = -(a1Transformed * image1.cols + c1Transformed) / b1Transformed;
+		cv::Point2d p1Start(p1StartX, p1StartY);
+		cv::Point2d p1End(p1EndX, p1EndY);
+
+		std::cout << p1Start << " " << p1End << std::endl;
+
+		cv::line(image1WithEpilines, p1Start, p1End, cv::Scalar(0,0,255));
+	}
+
+	for(auto it = linesOnImage2.begin(); it != linesOnImage2.end(); ++it){
+		double a2 = (*it)[0];
+		double b2 = (*it)[1];
+		double c2 = (*it)[2];
+		double a2Transformed = a2; // H2.at<double>(0,0) * a2 + H2.at<double>(0,1) * b2 + H2.at<double>(0,2) * c2;
+		double b2Transformed = b2; // H2.at<double>(1,0) * a2 + H2.at<double>(1,1) * b2 + H2.at<double>(1,2) * c2;
+		double c2Transformed = c2; // H2.at<double>(2,0) * a2 + H2.at<double>(2,1) * b2 + H2.at<double>(2,2) * c2;
+		double p2StartX = 0;
+		double p2StartY = -c2Transformed / b2Transformed;
+		double p2EndX = image2.cols;
+		double p2EndY = -(a2Transformed * image2.cols + c2Transformed) / b2Transformed;
+		cv::Point2d p2Start(p2StartX, p2StartY);
+		cv::Point2d p2End(p2EndX, p2EndY);
+
+		cv::line(image2WithEpilines, p2Start, p2End, cv::Scalar(0,0,255));
+	}
+
+	cv::namedWindow("Epilines1");
+	cv::imshow("Epilines1", image1WithEpilines);
+	cv::namedWindow("Epilines2");
+	cv::imshow("Epilines2", image2WithEpilines);
+	cv::waitKey(0);
+
+	cv::Mat image1Warped, image2Warped;
+
+	cv::warpPerspective(image1WithEpilines, image1Warped, H1, cv::Size(image1.cols, image1.rows));
+	cv::warpPerspective(image2WithEpilines, image2Warped, H2, cv::Size(image2.cols, image2.rows));
+
+	cv::Mat imageConcatenated;
+	cv::hconcat(image1Warped, image2Warped, imageConcatenated);	
+
+	cv::namedWindow("Rectified");
+	cv::imshow("Rectified", imageConcatenated);
 	cv::waitKey(0);
 }
 
