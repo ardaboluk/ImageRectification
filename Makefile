@@ -1,8 +1,8 @@
-CC = g++ # C compiler
+CXX = g++ # C compiler
 INCLUDEPATH = 
 LIBRARYPATH = 
 LIBS = `pkg-config --cflags --libs opencv`
-CFLAGS = $(INCLUDEPATH) -Wall -O2 -g 
+CXXFLAGS = $(INCLUDEPATH) -Wall -O2 -g 
 LDFLAGS = $(LIBRARYPATH) # linking flags
 RM = rm -f  # rm command
 TARGET = ImageRectification # target
@@ -14,10 +14,10 @@ OBJS = $(SRCS:.cpp=.o)
 all: ${TARGET}
 
 $(TARGET): $(OBJS)
-	$(CC) $(LDLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -c $<
 
 .PHONY: clean
 clean:
