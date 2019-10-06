@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+#include <utility>
 #include <string>
 #include "opencv2/opencv.hpp"
 
@@ -10,4 +12,5 @@ public:
 	static void displayMat(cv::Mat& cvMatrix, std::string explanation);
 	static void displayMat(double** matrix, int numRows, int numCols, std::string explanation);
 	static void displayMat(float** matrix, int numRows, int numCols, std::string explanation);
+	static std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> extractMatches(std::string image1Filename, std::string image2Filename);
 };

@@ -5,30 +5,55 @@
 #include "preprocessing.h"
 #include "util.h"
 
-double** Preprocessing::getNormalizationMat(float imageWidth, float imageHeight) {
+// Reference: github.com/DzReal/Normalized-Eight-Point-Algorithm
+// Reference: stackoverflow.com/questions/52940822/what-is-the-correct-way-to-normalize-corresponding-points-before-estimation-of-f
 
-	double** transformMat1 = new double* [3];
-	for (int i = 0; i < 3; i++) {
-		transformMat1[i] = new double[3];
+cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
+
+	cv::Mat transformMat(cv::Size(3,3), CV_32FC1);
+
+	// find mean
+	cv::Point3f centroid;
+	for(int i = 0; i < points.size(); i++){
+		centroid += points[i];
 	}
+	centroid.x /= points.size();
+	centroid.y /= points.size();
+	centroid.z /= points.size();
 
-	transformMat1[0][0] = 2.0 / imageWidth;
-	transformMat1[0][1] = 0;
-	transformMat1[0][2] = -1.0;
-	transformMat1[1][0] = 0;
-	transformMat1[1][1] = 2.0 / imageHeight;
-	transformMat1[1][2] = -1.0;
-	transformMat1[2][0] = 0;
-	transformMat1[2][1] = 0;
-	transformMat1[2][2] = 1;
+	// compute the average distance to the centroid
+	float avgDistance;
+	for(int i = 0; i < points.size(); i++){
+		cv::Point3f diffPoint = points[i] - centroid;
+		avgDistance += sqrtf(powf(diffPoint.x, 2.0f) + powf(diffPoint.y, 2.0f) + powf(diffPoint.z, 2.0f));
+	}
+	avgDistance /= points.size();
 
-	return transformMat1;
+	// craft the normalization matrix
+	float sqrt2f = sqrtf(2.0f);
+	
+	transformMat.at<float>(0,0) = sqrt2f / avgDistance;
+	transformMat.at<float>(0,1) = 0;
+	transformMat.at<float>(0,2) = -sqrt2f / avgDistance * centroid.x;
+
+	transformMat.at<float>(1,0) = 0;
+	transformMat.at<float>(1,1) = sqrt2f / avgDistance;
+	transformMat.at<float>(1,2) = -sqrt2f / avgDistance * centroid.y;
+
+	transformMat.at<float>(2,0) = 0;
+	transformMat.at<float>(2,1) = 0;
+	transformMat.at<float>(2,2) = 1;
+
+	return transformMat;
 }
 
 // TODO: should re-write using matMul
-float** Preprocessing::normalizeCoordinates(float** pointCorrespondences, float image1Width, float image1Height, float image2Width, float image2Height, int numPoints) {
+std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Preprocessing::normalizeCoordinates(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, int image1Width, int image1Height, int image2Width, int image2Height) {
 
-	float** normalizedCorrespondences = new float* [numPoints];
+	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> normalizedCorrespondences;
+	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
+	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
+
 	for (int i = 0; i < numPoints; i++) {
 		normalizedCorrespondences[i] = new float[4];
 		normalizedCorrespondences[i][0] = 2 * pointCorrespondences[i][0] / image1Width - 1;
