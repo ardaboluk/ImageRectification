@@ -19,15 +19,6 @@ std::vector<cv::Point2f> getRandomPoints2f();
 void test_transformPointsToHomogen();
 void test_normalizeCoordinates();
 
-int main(){
-
-    test_transformPointsToHomogen();
-    std::cout << std::endl;
-    test_normalizeCoordinates();
-
-    return 0;
-}
-
 float randomFloat(float a, float b){
     float random = ((float)rand()) / (float) RAND_MAX;
     float diff = b - a;
