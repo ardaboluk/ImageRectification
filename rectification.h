@@ -1,11 +1,19 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "opencv2/opencv.hpp"
 
 class Rectification {
+private:
+	cv::Mat image1;
+	cv::Mat image2;
+
 public:
+	Rectification(std::string image1FileName, std::string image2FileName);
+	void rectifyImages();
+
 	static float** getEpilines(float** pointCorrespondences, int numPoints, double** fundamentalMatrix);
 	static std::vector<cv::Mat> getEpilinesDebug(float** pointCorrespondences, int numPoints, cv::Mat fundamentalMatrix);
 	static void drawEpilines(float** epilines, int numLines, cv::Mat image1, cv::Mat image2);

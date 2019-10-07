@@ -19,6 +19,17 @@ std::vector<cv::Point3f> Preprocessing::transformPointsToHomogen(std::vector<cv:
 	return pointsHomogen;
 }
 
+std::vector<cv::Point2f> Preprocessing::transformPointsToNonHomogen(std::vector<cv::Point3f> points){
+	std::vector<cv::Point2f> nonHomogenPoints;
+	for(auto it = points.begin(); it != points.end(); ++it){
+		cv::Point2f tmpPoint;
+		tmpPoint.x = (*it).x / (*it).z;
+		tmpPoint.y = (*it).y / (*it).z;
+		nonHomogenPoints.push_back(tmpPoint);
+	}
+	return nonHomogenPoints;
+}
+
 cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
 
 	cv::Mat transformMat(cv::Size(3,3), CV_32FC1);
@@ -70,10 +81,4 @@ std::vector<cv::Point3f> Preprocessing::normalizeCoordinates(std::vector<cv::Poi
 		normalizedPoints.push_back(tmpPointNormalized);
 	}
 	return normalizedPoints;
-}
-
-cv::Mat Preprocessing::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2){
-
-	cv::Mat denormalizedFundamentalMatrix = (normalizationMat2.t() * fundamentalMatrix) * normalizationMat1;
-	return denormalizedFundamentalMatrix;
 }

@@ -12,7 +12,7 @@ public:
 
 	static std::vector<cv::Point3f> transformPointsToHomogen(std::vector<cv::Point2f> points);
 
-	static std::vector<cv::Point3f> normalizeCoordinates(std::vector<cv::Point3f> points, cv::Mat normalizationMat);
+	static std::vector<cv::Point2f> transformPointsToNonHomogen(std::vector<cv::Point3f> points);
 
-	static cv::Mat denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2);
+	static std::vector<cv::Point3f> normalizeCoordinates(std::vector<cv::Point3f> points, cv::Mat normalizationMat);
 };

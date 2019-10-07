@@ -10,6 +10,6 @@ private:
 	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListNormalized;
 public:
 	Estimator(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListNormalized);
-	// it's argument is corresponding points in the form {{x_1, y_1, x'_1, y'_1}, {x_2, y_2, x'_2, y'_2}, ...}
+	cv::Mat denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2);
 	cv::Mat estimateFundamentalMatrix();
 };

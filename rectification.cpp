@@ -3,6 +3,39 @@
 
 #include "rectification.h"
 #include "util.h"
+#include "preprocessing.h"
+#include "estimator.h"
+
+Rectification::Rectification(std::string image1FileName, std::string image2FileName){
+	image1 = cv::imread(image1FileName);
+	image2 = cv::imread(image2FileName);
+}
+
+void Rectification::rectifyImages(){
+	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
+	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
+	std::vector<cv::Point3f> correspondingPoints1_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1);
+	std::vector<cv::Point3f> correspondingPoints2_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints2);
+
+	cv::Mat normMat1 = Preprocessing::getNormalizationMat(correspondingPoints1_3f);
+	cv::Mat normMat2 = Preprocessing::getNormalizationMat(correspondingPoints2_3f);
+
+	std::vector<cv::Point3f> correspondingPoints1_3f_normalized = Preprocessing::normalizeCoordinates(correspondingPoints1_3f, normMat1);
+	std::vector<cv::Point3f> correspondingPoints2_3f_normalized = Preprocessing::normalizeCoordinates(correspondingPoints2_3f, normMat2);
+
+	std::vector<cv::Point2f> correspondingPoints1_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_3f_normalized);
+	std::vector<cv::Point2f> correspondingPoints2_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized);
+
+	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList_normalized;
+	correspondingPointsList_normalized.first = correspondingPoints1_normalized;
+	correspondingPointsList_normalized.second = correspondingPoints2_normalized;
+
+	Estimator estimator(correspondingPointsList_normalized);
+	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
+	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
+
+}
 
 /*
 * Returns an array of epipolar lines.

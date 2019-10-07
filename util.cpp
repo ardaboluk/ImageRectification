@@ -8,9 +8,7 @@ void Util::displayMat(cv::Mat& cvMatrix, std::string explanation) {
 	std::cout << std::endl;
 }
 
-std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatches(std::string image1Filename, std::string image2Filename){
-	cv::Mat image1 = cv::imread(image1Filename);
-	cv::Mat image2 = cv::imread(image2Filename);
+std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatches(cv::Mat image1, cv::Mat image2){
 
 	std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
     cv::Mat descriptors_1, descriptors_2;

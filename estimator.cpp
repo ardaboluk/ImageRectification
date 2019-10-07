@@ -31,6 +31,12 @@ void Estimator::buildHMSMatrix() {
 	}
 }
 
+cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2){
+
+	cv::Mat denormalizedFundamentalMatrix = (normalizationMat2.t() * fundamentalMatrix) * normalizationMat1;
+	return denormalizedFundamentalMatrix;
+}
+
 cv::Mat Estimator::estimateFundamentalMatrix(){
 	cv::Mat w, u, vt;
 	// u * diag(w) * vt
