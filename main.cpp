@@ -29,7 +29,8 @@ void debugSaveCorrespondencesToMat(cv::Mat correspondences, std::string filename
 std::string image1FileName;
 std::string image2FileName;
 
-int main(int argc, char* argv[]) {
+
+int __main(int argc, char* argv[]) {
 
 	debugWithOpenCV("img1.jpg", "img2.jpg");
 	

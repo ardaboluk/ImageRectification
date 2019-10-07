@@ -3,10 +3,21 @@
 #include <iostream>
 
 #include "preprocessing.h"
-#include "util.h"
 
 // Reference: github.com/DzReal/Normalized-Eight-Point-Algorithm
 // Reference: stackoverflow.com/questions/52940822/what-is-the-correct-way-to-normalize-corresponding-points-before-estimation-of-f
+
+std::vector<cv::Point3f> Preprocessing::transformPointsToHomogen(std::vector<cv::Point2f> points){
+	std::vector<cv::Point3f> pointsHomogen;
+	for(std::vector<cv::Point2f>::iterator it = points.begin(); it != points.end(); ++it){
+		cv::Point3f tmpPoint;
+		tmpPoint.x = (*it).x; 
+		tmpPoint.y = (*it).y; 
+		tmpPoint.z = 1.0f; 
+		pointsHomogen.push_back(tmpPoint);
+	}
+	return pointsHomogen;
+}
 
 cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
 
@@ -47,43 +58,22 @@ cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
 	return transformMat;
 }
 
-// TODO: should re-write using matMul
-std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Preprocessing::normalizeCoordinates(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, int image1Width, int image1Height, int image2Width, int image2Height) {
-
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> normalizedCorrespondences;
-	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
-	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
-
-	for (int i = 0; i < numPoints; i++) {
-		normalizedCorrespondences[i] = new float[4];
-		normalizedCorrespondences[i][0] = 2 * pointCorrespondences[i][0] / image1Width - 1;
-		normalizedCorrespondences[i][1] = 2 * pointCorrespondences[i][1] / image1Height - 1;
-		normalizedCorrespondences[i][2] = 2 * pointCorrespondences[i][2] / image2Width - 1;
-		normalizedCorrespondences[i][3] = 2 * pointCorrespondences[i][3] / image2Height - 1;
+std::vector<cv::Point3f> Preprocessing::normalizeCoordinates(std::vector<cv::Point3f> points, cv::Mat normalizationMat) {
+	std::vector<cv::Point3f> normalizedPoints;
+	for (std::vector<cv::Point3f>::iterator it = points.begin(); it != points.end(); ++it) {
+		cv::Mat tmpPointMat((*it), true);
+		cv::Mat normalizedPointsMat = tmpPointMat * normalizationMat;
+		cv::Point3f tmpPointNormalized;
+		tmpPointNormalized.x = normalizedPointsMat.at<float>(0,0);
+		tmpPointNormalized.y = normalizedPointsMat.at<float>(0,1);
+		tmpPointNormalized.z = normalizedPointsMat.at<float>(0,2);
+		normalizedPoints.push_back(tmpPointNormalized);
 	}
-	return normalizedCorrespondences;
+	return normalizedPoints;
 }
 
-double** Preprocessing::denormalizeFundamentalMatrix(double** fmat, float image1Width, float image1Height, float image2Width, float image2Height) {
+cv::Mat Preprocessing::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2){
 
-	double** normalizationMat1 = getNormalizationMat(image1Width, image1Height);
-	double** normalizationMat2 = getNormalizationMat(image2Width, image2Height);
-
-	double** tMat2Tr = Util::transpose(normalizationMat2, 3, 3);
-	double** tmpMul = Util::matMul(tMat2Tr, fmat, 3, 3, 3, 3);
-	double** denormalizedFMat = Util::matMul(tmpMul, normalizationMat1, 3, 3, 3, 3);
-
-	for (int i = 0; i < 3; i++) {
-		delete[] normalizationMat1[i];
-		delete[] normalizationMat2[i];
-		delete[] tMat2Tr[i];
-		delete[] tmpMul[i];
-	}
-
-	delete[] normalizationMat1;
-	delete[] normalizationMat2;
-	delete[] tMat2Tr;
-	delete[] tmpMul;
-
-	return denormalizedFMat;
+	cv::Mat denormalizedFundamentalMatrix = normalizationMat2.t() * (fundamentalMatrix * normalizationMat1);
+	return denormalizedFundamentalMatrix;
 }

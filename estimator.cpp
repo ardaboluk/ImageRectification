@@ -21,7 +21,7 @@ void Estimator::buildHMSMatrix(float** pointCorrespondences) {
 	}
 }
 
-double** Estimator::estimateFundamentalMatrix(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList) {
+/*double** Estimator::estimateFundamentalMatrix(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList) {
 
 	// find widths and heights in both images for normalization and denormalization
 	float maxX1 = abs(pointCorrespondences[0][0]), maxY1 = abs(pointCorrespondences[0][1]), 
@@ -117,4 +117,4 @@ double** Estimator::estimateFundamentalMatrix(std::pair<std::vector<cv::Point2f>
 	delete[] FMatrix;
 
 	return denormalizedFMatrix;
-}
+}*/

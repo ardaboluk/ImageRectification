@@ -10,7 +10,7 @@
 * The first one is the line on the second image corresponding the to point in the first image.
 * The second one is the line on the first image corresponding the to point in the second image.
 */
-float** Rectification::getEpilines(float** pointCorrespondences, int numPoints, double** fundamentalMatrix) {
+/*float** Rectification::getEpilines(float** pointCorrespondences, int numPoints, double** fundamentalMatrix) {
 	
 	float** epilines = new float* [numPoints];
 	for (int i = 0; i < numPoints; i++) {
@@ -60,7 +60,7 @@ float** Rectification::getEpilines(float** pointCorrespondences, int numPoints, 
 	delete[] fundamental_transpose;
 
 	return epilines;
-}
+}*/
 
 std::vector<cv::Mat> Rectification::getEpilinesDebug(float** pointCorrespondences, int numPoints, cv::Mat fundamentalMatrix) {
 	cv::Mat points1 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
