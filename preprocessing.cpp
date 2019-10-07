@@ -62,11 +62,11 @@ std::vector<cv::Point3f> Preprocessing::normalizeCoordinates(std::vector<cv::Poi
 	std::vector<cv::Point3f> normalizedPoints;
 	for (std::vector<cv::Point3f>::iterator it = points.begin(); it != points.end(); ++it) {
 		cv::Mat tmpPointMat((*it), true);
-		cv::Mat normalizedPointsMat = tmpPointMat * normalizationMat;
+		cv::Mat normalizedPointsMat = normalizationMat * tmpPointMat;
 		cv::Point3f tmpPointNormalized;
 		tmpPointNormalized.x = normalizedPointsMat.at<float>(0,0);
-		tmpPointNormalized.y = normalizedPointsMat.at<float>(0,1);
-		tmpPointNormalized.z = normalizedPointsMat.at<float>(0,2);
+		tmpPointNormalized.y = normalizedPointsMat.at<float>(1,0);
+		tmpPointNormalized.z = normalizedPointsMat.at<float>(2,0);
 		normalizedPoints.push_back(tmpPointNormalized);
 	}
 	return normalizedPoints;
@@ -74,6 +74,6 @@ std::vector<cv::Point3f> Preprocessing::normalizeCoordinates(std::vector<cv::Poi
 
 cv::Mat Preprocessing::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2){
 
-	cv::Mat denormalizedFundamentalMatrix = normalizationMat2.t() * (fundamentalMatrix * normalizationMat1);
+	cv::Mat denormalizedFundamentalMatrix = (normalizationMat2.t() * fundamentalMatrix) * normalizationMat1;
 	return denormalizedFundamentalMatrix;
 }
