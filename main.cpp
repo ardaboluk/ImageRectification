@@ -23,16 +23,20 @@ void checkFundamentalMatrix(cv::Mat&, cv::Mat&, cv::Mat&);
 void getFileNamesFromUser();
 
 void debugWithOpenCV(std::string image1FileName, std::string image2FileName);
-void debugEstimator(std::string image1FileName, std::string image2FileName);
 void debugSaveCorrespondencesToMat(cv::Mat correspondences, std::string filename);
 
 std::string image1FileName;
 std::string image2FileName;
 
-
 int __main(int argc, char* argv[]) {
 
-	debugWithOpenCV("img1.jpg", "img2.jpg");
+	//debugWithOpenCV("img1.jpg", "img2.jpg");
+	Rectification rectificator("img1.jpg", "img2.jpg");
+	std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages();
+	cv::namedWindow("RectifiedImage1");
+	cv::namedWindow("RectifiedImage2");
+	cv::imshow("RectifiedImage1", rectifiedImages.first);
+	cv::imshow("RectifiedImage2", rectifiedImages.second);
 	
 	/*if (argc > 2) {
 		image1FileName = argv[1];
@@ -187,31 +191,14 @@ void checkFundamentalMatrix(double** fundamentalMatrix, float** correspondences)
 	std::cout << std::endl;
 }
 
-void checkFundamentalMatrix(cv::Mat& fundamentalMatrix, cv::Mat& points1, cv::Mat& points2) {
-	/*
-	* This function works with cv::Mat objects.
-	* Checks if the given fundamental matrix satisfies the equation xFx' ~ 0 for each point.
-	*/
-	std::cout << "Verifying the fundamental matrix using line equation." << std::endl;
-	for (int i = 0; i < points1.rows; i++) {
-		double points1Arr[3] = { points1.at<float>(i, 0), points1.at<float>(i, 1), 1.0f };
-		double points2Arr[3] = { points2.at<float>(i, 0), points2.at<float>(i, 1), 1.0f };
-		cv::Mat currentPoint1Vec(cv::Size(3, 1), CV_64FC1, points1Arr);
-		cv::Mat currentPoint2Vec(cv::Size(3, 1), CV_64FC1, points2Arr);
-		cv::Mat resultMat = currentPoint1Vec * fundamentalMatrix * currentPoint2Vec.t();
-		std::cout << resultMat << std::endl;
-	}
-	std::cout << std::endl;
-}
 
 void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 
-	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1FileName, image2FileName);
-	std::vector<Point2f> correspondingPoints1 = correspondingPointsList.first;
-	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
-
 	cv::Mat image1 = cv::imread(image1FileName);
 	cv::Mat image2 = cv::imread(image2FileName);
+	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+	std::vector<Point2f> correspondingPoints1 = correspondingPointsList.first;
+	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
 	
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2);
@@ -278,47 +265,4 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 	cv::namedWindow("Rectified");
 	cv::imshow("Rectified", imageConcatenated);
 	cv::waitKey(0);
-}
-
-void debugEstimator(std::string image1FileName, std::string image2FileName){
-
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList =  Util::extractMatches(image1FileName, image2FileName);
-
-	//init point correspondences
-	float** pointCorrespondences = new float*[8];
-	for(int i = 0; i < 8; i++){
-		pointCorrespondences[i] = new float[4];
-	}
-
-	//find fundamental matrix using OpenCV
-	Estimator estimator;
-	cv::Mat FMat = estimator.estimateMatrixDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences);
-	std::cout << FMat.type() << std::endl;
-	std::vector<cv::Mat> lines = Rectification::getEpilinesDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat);
-	cv::Mat image1 = cv::imread("img1.jpg");
-	cv::Mat image2 = cv::imread("img2.jpg");
-	cv::Mat image1EpilinesCopyDebug = image1.clone();
-	cv::Mat image2EpilinesCopyDebug = image2.clone();
-	Rectification::drawEpilinesDebug(lines, CorrespondenceChooser::numCorrespondences, image1EpilinesCopyDebug, image2EpilinesCopyDebug);
-	cv::namedWindow("Epilines1 Debug");
-	cv::namedWindow("Epilines2 Debug");
-	cv::imshow("Epilines1 Debug", image1EpilinesCopyDebug);
-	cv::imshow("Epilines2 Debug", image2EpilinesCopyDebug);
-	cv::waitKey(0);
-	cv::Mat H1CV(cv::Size(3, 3), CV_64FC1);
-	cv::Mat H2CV(cv::Size(3, 3), CV_64FC1);
-	Rectification::rectifyUncalibratedDebug(pointCorrespondences, CorrespondenceChooser::numCorrespondences, FMat, image1.rows, image1.cols, H1CV, H2CV);
-	cv::Mat image1TransformedDebug(image1.size(), image1.type());
-	cv::Mat image2TransformedDebug(image2.size(), image2.type());
-	cv::warpPerspective(image1, image1TransformedDebug, H1CV, image1TransformedDebug.size());
-	cv::warpPerspective(image2, image2TransformedDebug, H2CV, image2TransformedDebug.size());
-	cv::namedWindow("Image1 transformed debug");
-	cv::namedWindow("Image2 transformed debug");
-	cv::imshow("Image1 transformed debug", image1TransformedDebug);
-	cv::imshow("Image2 transformed debug", image2TransformedDebug);
-	cv::waitKey(0);
-	for (int i = 0; i < CorrespondenceChooser::numCorrespondences; i++) {
-		delete[] pointCorrespondences[i];
-	}
-	delete[] pointCorrespondences;
 }

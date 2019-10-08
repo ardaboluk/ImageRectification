@@ -7,7 +7,7 @@ LDFLAGS = $(LIBRARYPATH) # linking flags
 RM = rm -f  # rm command
 TARGET = ImageRectification # target
 
-SRCS = correspondenceChooser.cpp estimator.cpp main.cpp preprocessing.cpp rectification.cpp util.cpp test_preprocessing.cpp
+SRCS = correspondenceChooser.cpp estimator.cpp main.cpp preprocessing.cpp rectification.cpp util.cpp test_preprocessing.cpp test_estimator.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 .PHONY: all

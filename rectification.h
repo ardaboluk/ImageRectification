@@ -10,9 +10,11 @@ private:
 	cv::Mat image1;
 	cv::Mat image2;
 
+	cv::Mat warpImage(cv::Mat image, cv::Mat homography);
+	
 public:
 	Rectification(std::string image1FileName, std::string image2FileName);
-	void rectifyImages();
+	std::pair<cv::Mat, cv::Mat> rectifyImages();
 
 	static float** getEpilines(float** pointCorrespondences, int numPoints, double** fundamentalMatrix);
 	static std::vector<cv::Mat> getEpilinesDebug(float** pointCorrespondences, int numPoints, cv::Mat fundamentalMatrix);

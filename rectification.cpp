@@ -11,7 +11,13 @@ Rectification::Rectification(std::string image1FileName, std::string image2FileN
 	image2 = cv::imread(image2FileName);
 }
 
-void Rectification::rectifyImages(){
+cv::Mat Rectification::warpImage(cv::Mat image, cv::Mat homography){
+	cv::Mat warpedImage;
+	cv::warpPerspective(image, warpedImage, homography, cv::Size(image.cols, image.rows));
+	return warpedImage;
+}
+
+std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
@@ -35,6 +41,21 @@ void Rectification::rectifyImages(){
 	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
 	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
+	std::pair<cv::Mat, cv::Mat> homographyMatrices = estimator.estimateHomographyMatrices_openCV(correspondingPointsList, cv::Size(image1.cols, image1.rows), fundamentalMatrixDenormalized);
+	cv::Mat homographyMat1 = homographyMatrices.first;
+	cv::Mat homographyMat2 = homographyMatrices.second;
+	
+	cv::Mat warpedImage1;
+	cv::Mat warpedImage2;
+
+	warpedImage1 = warpImage(image1, homographyMat1);
+	warpedImage2 = warpImage(image2, homographyMat2);
+
+	std::pair<cv::Mat, cv::Mat> warpedImages;
+	warpedImages.first = warpedImage1;
+	warpedImages.second = warpedImage2;
+
+	return warpedImages;
 }
 
 /*
