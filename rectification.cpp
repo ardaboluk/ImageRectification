@@ -41,6 +41,8 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
 	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
+	std::cout << fundamentalMatrixDenormalized << std::endl;
+
 	std::pair<cv::Mat, cv::Mat> homographyMatrices = estimator.estimateHomographyMatrices_openCV(correspondingPointsList, cv::Size(image1.cols, image1.rows), fundamentalMatrixDenormalized);
 	cv::Mat homographyMat1 = homographyMatrices.first;
 	cv::Mat homographyMat2 = homographyMatrices.second;

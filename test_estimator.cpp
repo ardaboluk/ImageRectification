@@ -10,9 +10,11 @@
 
 std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2);
 void test_estimateFundamentalMatrix();
+void test_fundamentalMatrixOpencv();
 
 int __main(){
 
+    test_fundamentalMatrixOpencv();
     test_estimateFundamentalMatrix();
 
     return 0;
@@ -52,6 +54,7 @@ void test_estimateFundamentalMatrix(){
         cv::Mat image2 = cv::imread(currentImageFileName2);
 
         std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+
         std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
         std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
         std::vector<cv::Point3f> correspondingPoints1_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1);
@@ -75,6 +78,42 @@ void test_estimateFundamentalMatrix(){
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrixDenormalized, correspondingPoints1, correspondingPoints2);
+        double epsilond = std::numeric_limits<double>::epsilon() * 100;
+        for(auto it = results.begin(); it != results.end(); ++it){
+            assert((*it) < epsilond);
+        }
+    }
+}
+
+void test_fundamentalMatrixOpencv(){
+
+    std::vector<std::string> imageFileNames1{"img1.jpg", "Lab_1.jpg", "Building_1.jpg"};
+    std::vector<std::string> imageFileNames2{"img2.jpg", "Lab_2.jpg", "Building_2.jpg"};
+
+    for(int i = 0; i < imageFileNames1.size(); i++){
+        std::string currentImageFileName1 = imageFileNames1[i];
+        std::string currentImageFileName2 = imageFileNames2[i];
+        cv::Mat image1 = cv::imread(currentImageFileName1);
+        cv::Mat image2 = cv::imread(currentImageFileName2);
+
+        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListTmp = Util::extractMatches(image1, image2);
+        std::vector<cv::Point2f> correspondingPoints1Tmp;
+        std::vector<cv::Point2f> correspondingPoints2Tmp;
+        for(int i = 0; i < 8; i++){
+            correspondingPoints1Tmp.push_back(correspondingPointsListTmp.first[i]);
+            correspondingPoints2Tmp.push_back(correspondingPointsListTmp.second[i]);
+        }
+        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList;
+        correspondingPointsList.first = correspondingPoints1Tmp;
+        correspondingPointsList.second = correspondingPoints2Tmp;
+
+        std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
+        std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
+        
+        Estimator estimator(correspondingPointsList);
+        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix_opencv();
+
+        std::vector<double> results = checkFundamentalMatrix(fundamentalMatrix, correspondingPointsListTmp.first, correspondingPointsListTmp.second);
         double epsilond = std::numeric_limits<double>::epsilon() * 100;
         for(auto it = results.begin(); it != results.end(); ++it){
             assert((*it) < epsilond);

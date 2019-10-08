@@ -201,7 +201,9 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
 	
 	cv::Mat FMat;
-	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2);
+	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
+	std::cout << FMat << std::endl;
+
 	cv::Mat H1, H2;
 	
 	cv::stereoRectifyUncalibrated(correspondingPoints1, correspondingPoints2, FMat, 

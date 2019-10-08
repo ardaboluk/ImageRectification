@@ -38,6 +38,14 @@ cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::M
 	normalizationMat2.convertTo(normalizationMat2_64F, CV_64FC1);
 	
 	cv::Mat denormalizedFundamentalMatrix = (normalizationMat2_64F.t() * fundamentalMatrix) * normalizationMat1_64F;
+
+	double fmat22 = denormalizedFundamentalMatrix.at<double>(2,2);
+	for(int i = 0; i < 3; i++){
+		for(int j = 0; j < 3; j++){
+			denormalizedFundamentalMatrix.at<double>(i,j) /= fmat22;
+		}
+	}
+
 	return denormalizedFundamentalMatrix;
 }
 
@@ -68,6 +76,18 @@ cv::Mat Estimator::estimateFundamentalMatrix(){
 	return fundamentalMatrixRank2;
 }
 
+/* 
+* If this method will be called, the private member correspondingPointsListNormalized should be given
+* corresponding points that aren't normalized.
+*/
+cv::Mat Estimator::estimateFundamentalMatrix_opencv(){
+	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsListNormalized.first;
+	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsListNormalized.second;
+	cv::Mat FMat;
+	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
+	return FMat;
+}
+
 std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
 	cv::Mat homographyMat1;
 	cv::Mat homographyMat2;
@@ -75,10 +95,10 @@ std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pa
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
 
-	std::cout << "correspondingPoints1" << std::endl << correspondingPoints1 << std::endl;
-	std::cout << "correspondingPoints2" << std::endl << correspondingPoints2 << std::endl;
-	std::cout << "fundamental matrix" << std::endl << fundamentalMatrix << std::endl;
-	std::cout << "image rows " << imageSize.height << " image cols " << imageSize.width << std::endl;
+	// std::cout << "correspondingPoints1" << std::endl << correspondingPoints1 << std::endl;
+	// std::cout << "correspondingPoints2" << std::endl << correspondingPoints2 << std::endl;
+	// std::cout << "fundamental matrix" << std::endl << fundamentalMatrix << std::endl;
+	// std::cout << "image rows " << imageSize.height << " image cols " << imageSize.width << std::endl;
 
 	cv::stereoRectifyUncalibrated(correspondingPoints1, correspondingPoints2, fundamentalMatrix, imageSize, homographyMat1, homographyMat2, 3);
 
