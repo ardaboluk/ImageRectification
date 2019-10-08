@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
 	cv::namedWindow("RectifiedImage2");
 	cv::imshow("RectifiedImage1", rectifiedImages.first);
 	cv::imshow("RectifiedImage2", rectifiedImages.second);
+	cv::waitKey(0);
 	
 	/*if (argc > 2) {
 		image1FileName = argv[1];
