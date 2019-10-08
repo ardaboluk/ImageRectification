@@ -1,6 +1,8 @@
 
 #include <vector>
 #include <string>
+#include <cassert>
+#include <limits>
 
 #include "util.h"
 #include "preprocessing.h"
@@ -9,7 +11,14 @@
 std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2);
 void test_estimateFundamentalMatrix();
 
-std::vector<double> checkFundamentalMatrix(cv::Mat& fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2) {
+int __main(){
+
+    test_estimateFundamentalMatrix();
+
+    return 0;
+}
+
+std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2) {
     std::vector<double> results;
 	std::cout << "Verifying the fundamental matrix using line equation." << std::endl;
 	for (int i = 0; i < points1.size(); i++) {
@@ -64,5 +73,11 @@ void test_estimateFundamentalMatrix(){
         Estimator estimator(correspondingPointsList_normalized);
         cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
+
+        std::vector<double> results = checkFundamentalMatrix(fundamentalMatrixDenormalized, correspondingPoints1, correspondingPoints2);
+        double epsilond = std::numeric_limits<double>::epsilon() * 100;
+        for(auto it = results.begin(); it != results.end(); ++it){
+            assert((*it) < epsilond);
+        }
     }
 }
