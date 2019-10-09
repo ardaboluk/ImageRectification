@@ -18,7 +18,7 @@ cv::Mat Rectification::warpImage(cv::Mat image, cv::Mat homography){
 }
 
 std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
 	std::vector<cv::Point3f> correspondingPoints1_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1);
@@ -43,6 +43,18 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 
 	std::cout << fundamentalMatrixDenormalized << std::endl;
 
+	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines = getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);
+	cv::Mat image1WithEpilines = image1.clone();
+	cv::Mat image2WithEpilines = image2.clone();
+	drawEpilines(epilines, image1WithEpilines, image2WithEpilines);
+	std::string epilines1WindowName = "Epilines1";
+	std::string epilines2WindowName = "Epilines2";
+	cv::namedWindow(epilines1WindowName);
+	cv::namedWindow(epilines2WindowName);
+	cv::imshow(epilines1WindowName, image1WithEpilines);
+	cv::imshow(epilines2WindowName, image2WithEpilines);
+	cv::waitKey(0);
+
 	std::pair<cv::Mat, cv::Mat> homographyMatrices = estimator.estimateHomographyMatrices_openCV(correspondingPointsList, cv::Size(image1.cols, image1.rows), fundamentalMatrixDenormalized);
 	cv::Mat homographyMat1 = homographyMatrices.first;
 	cv::Mat homographyMat2 = homographyMatrices.second;
@@ -66,57 +78,41 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 * The first one is the line on the second image corresponding the to point in the first image.
 * The second one is the line on the first image corresponding the to point in the second image.
 */
-/*float** Rectification::getEpilines(float** pointCorrespondences, int numPoints, double** fundamentalMatrix) {
+std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> Rectification::getEpilines(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondenceList, cv::Mat fundamentalMatrix) {
 	
-	float** epilines = new float* [numPoints];
-	for (int i = 0; i < numPoints; i++) {
-		epilines[i] = new float[6];
+	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines;
+
+	for (int i = 0; i < (int)correspondenceList.first.size(); i++) {
+		cv::Point3d point1;
+		cv::Point3d point2;
+		cv::Mat point1Mat;
+		cv::Mat point2Mat;
+		point1.x = correspondenceList.first[i].x;
+		point1.y = correspondenceList.first[i].y;
+		point1.z = 1.0;
+		point1Mat = cv::Mat(point1);
+		point2.x = correspondenceList.second[i].x;
+		point2.y = correspondenceList.second[i].y;
+		point2.z = 1.0;
+		point2Mat = cv::Mat(point2);
+
+		cv::Mat line1Mat = fundamentalMatrix * point1Mat;
+		cv::Mat line2Mat = fundamentalMatrix.t() * point2Mat;
+		cv::Point3d line1;
+		cv::Point3d line2;
+		line1.x = line1Mat.at<double>(0,0);
+		line1.y = line1Mat.at<double>(1,0);
+		line1.z = line1Mat.at<double>(2,0);
+		line2.x = line2Mat.at<double>(0,0);
+		line2.y = line2Mat.at<double>(1,0);
+		line2.z = line2Mat.at<double>(2,0);
+
+		epilines.first.push_back(line1);
+		epilines.second.push_back(line2);
 	}
-
-	double** fundamental_transpose = Util::transpose(fundamentalMatrix, 3, 3);
-
-	for (int i = 0; i < numPoints; i++) {
-		double** point1 = new double* [3];
-		double** point2 = new double* [3];
-		for (int j = 0; j < 3; j++) {
-			point1[j] = new double[1];
-			point2[j] = new double[1];
-		}
-		
-		point1[0][0] = pointCorrespondences[i][0];
-		point1[1][0] = pointCorrespondences[i][1];
-		point1[2][0] = 1.0;
-		point2[0][0] = pointCorrespondences[i][2];
-		point2[1][0] = pointCorrespondences[i][3];
-		point2[2][0] = 1.0;
-
-		double** line1 = Util::matMul(fundamentalMatrix, point1, 3, 3, 3, 1);
-		double** line2 = Util::matMul(fundamental_transpose, point2, 3, 3, 3, 1);
-
-		for (int j = 0; j < 3; j++) {
-			epilines[i][j] = (float)line1[j][0];
-			epilines[i][j + 3] = (float)line2[j][0];
-		}
-
-		for (int j = 0; j < 3; j++) {
-			delete[] point1[j];
-			delete[] point2[j];
-			delete[] line1[j];
-			delete[] line2[j];
-		}
-		delete[] point1;
-		delete[] point2;
-		delete[] line1;
-		delete[] line2;
-	}
-
-	for (int i = 0; i < 3; i++) {
-		delete[] fundamental_transpose[i];
-	}
-	delete[] fundamental_transpose;
 
 	return epilines;
-}*/
+}
 
 std::vector<cv::Mat> Rectification::getEpilinesDebug(float** pointCorrespondences, int numPoints, cv::Mat fundamentalMatrix) {
 	cv::Mat points1 = cv::Mat(cv::Size(2, numPoints), CV_64FC1);
@@ -140,28 +136,29 @@ std::vector<cv::Mat> Rectification::getEpilinesDebug(float** pointCorrespondence
 	return lines;
 }
 
-void Rectification::drawEpilines(float** epilines, int numLines, cv::Mat image1, cv::Mat image2) {
+void Rectification::drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines, cv::Mat image1, cv::Mat image2) {
 
-	for (int i = 0; i < numLines; i++) {
-		float a1 = epilines[i][0], b1 = epilines[i][1], c1 = epilines[i][2];
-		float a2 = epilines[i][3], b2 = epilines[i][4], c2 = epilines[i][5];
+	for (int i = 0; i < (int)epilines.first.size(); i++) {
 
-		float p1StartX = 0;
-		float p1StartY = -c1 / b1;
-		float p1EndX = image1.cols;
-		float p1EndY = -(a1 * image1.cols + c1) / b1;
-		cv::Point2f p1Start(p1StartX, p1StartY);
-		cv::Point2f p1End(p1EndX, p1EndY);
+		double a1 = epilines.first[i].x; double b1 = epilines.first[i].y; double c1 = epilines.first[i].z;
+		double a2 = epilines.second[i].x; double b2 = epilines.second[i].y; double c2 = epilines.second[i].z;
 
-		float p2StartX = 0;
-		float p2StartY = -c2 / b2;
-		float p2EndX = image2.cols;
-		float p2EndY = -(a2 * image2.cols + c2) / b2;
-		cv::Point2f p2Start(p2StartX, p2StartY);
-		cv::Point2f p2End(p2EndX, p2EndY);
+		double p1StartX = 0;
+		double p1StartY = -c1 / b1;
+		double p1EndX = image1.cols;
+		double p1EndY = -(a1 * image1.cols + c1) / b1;
+		cv::Point2d p1Start(p1StartX, p1StartY);
+		cv::Point2d p1End(p1EndX, p1EndY);
 
-		cv::line(image1, p1Start, p1End, cv::Scalar(0, 0, 0));
-		cv::line(image2, p2Start, p2End, cv::Scalar(0, 0, 0));
+		double p2StartX = 0;
+		double p2StartY = -c2 / b2;
+		double p2EndX = image2.cols;
+		double p2EndY = -(a2 * image2.cols + c2) / b2;
+		cv::Point2d p2Start(p2StartX, p2StartY);
+		cv::Point2d p2End(p2EndX, p2EndY);
+
+		cv::line(image1, p1Start, p1End, cv::Scalar(0, 0, 255));
+		cv::line(image2, p2Start, p2End, cv::Scalar(0, 0, 255));
 	}
 }
 

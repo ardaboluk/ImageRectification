@@ -23,8 +23,8 @@ std::vector<cv::Point2f> Preprocessing::transformPointsToNonHomogen(std::vector<
 	std::vector<cv::Point2f> nonHomogenPoints;
 	for(auto it = points.begin(); it != points.end(); ++it){
 		cv::Point2f tmpPoint;
-		tmpPoint.x = (*it).x / (*it).z;
-		tmpPoint.y = (*it).y / (*it).z;
+		tmpPoint.x = (float)((double)(*it).x / (*it).z);
+		tmpPoint.y = (float)((double)(*it).y / (*it).z);
 		nonHomogenPoints.push_back(tmpPoint);
 	}
 	return nonHomogenPoints;
@@ -32,39 +32,47 @@ std::vector<cv::Point2f> Preprocessing::transformPointsToNonHomogen(std::vector<
 
 cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
 
-	cv::Mat transformMat(cv::Size(3,3), CV_32FC1);
+	std::vector<cv::Point3d> pointsd;
+	for(auto it = points.begin(); it != points.end(); ++it){
+		cv::Point3d tmpPoint;
+		tmpPoint.x = (double)(*it).x;
+		tmpPoint.y = (double)(*it).y;
+		tmpPoint.z = (double)(*it).z;
+		pointsd.push_back(tmpPoint);
+	}
+	cv::Mat transformMat(cv::Size(3,3), CV_64FC1);
 
 	// find mean
-	cv::Point3f centroid;
-	for(int i = 0; i < points.size(); i++){
-		centroid += points[i];
+	cv::Point3d centroid;
+	for(int i = 0; i < (int)pointsd.size(); i++){
+		centroid += pointsd[i];
 	}
-	centroid.x /= points.size();
-	centroid.y /= points.size();
-	centroid.z /= points.size();
+	centroid.x /= pointsd.size();
+	centroid.y /= pointsd.size();
+	centroid.z /= pointsd.size();
 
 	// compute the average distance to the centroid
-	float avgDistance;
-	for(int i = 0; i < points.size(); i++){
-		cv::Point3f diffPoint = points[i] - centroid;
-		avgDistance += sqrtf(powf(diffPoint.x, 2.0f) + powf(diffPoint.y, 2.0f) + powf(diffPoint.z, 2.0f));
+	double avgDistance;
+	for(int i = 0; i < (int)pointsd.size(); i++){
+		cv::Point3d diffPoint = pointsd[i] - centroid;
+		avgDistance += sqrtf(pow(diffPoint.x, 2.0) + pow(diffPoint.y, 2.0) + pow(diffPoint.z, 2.0));
 	}
-	avgDistance /= points.size();
+	avgDistance /= pointsd.size();
 
 	// craft the normalization matrix
-	float sqrt2f = sqrtf(2.0f);
+	double sqrt2d = sqrt(2.0);
 	
-	transformMat.at<float>(0,0) = sqrt2f / avgDistance;
-	transformMat.at<float>(0,1) = 0;
-	transformMat.at<float>(0,2) = -sqrt2f / avgDistance * centroid.x;
+	transformMat.at<double>(0,0) = sqrt2d / avgDistance;
+	transformMat.at<double>(0,1) = 0;
+	transformMat.at<double>(0,2) = -sqrt2d / avgDistance * centroid.x;
 
-	transformMat.at<float>(1,0) = 0;
-	transformMat.at<float>(1,1) = sqrt2f / avgDistance;
-	transformMat.at<float>(1,2) = -sqrt2f / avgDistance * centroid.y;
+	transformMat.at<double>(1,0) = 0;
+	transformMat.at<double>(1,1) = sqrt2d / avgDistance;
+	transformMat.at<double>(1,2) = -sqrt2d / avgDistance * centroid.y;
 
-	transformMat.at<float>(2,0) = 0;
-	transformMat.at<float>(2,1) = 0;
-	transformMat.at<float>(2,2) = 1;
+	transformMat.at<double>(2,0) = 0;
+	transformMat.at<double>(2,1) = 0;
+	transformMat.at<double>(2,2) = 1;
 
 	return transformMat;
 }
@@ -72,12 +80,16 @@ cv::Mat Preprocessing::getNormalizationMat(std::vector<cv::Point3f> points) {
 std::vector<cv::Point3f> Preprocessing::normalizeCoordinates(std::vector<cv::Point3f> points, cv::Mat normalizationMat) {
 	std::vector<cv::Point3f> normalizedPoints;
 	for (std::vector<cv::Point3f>::iterator it = points.begin(); it != points.end(); ++it) {
-		cv::Mat tmpPointMat((*it), true);
-		cv::Mat normalizedPointsMat = normalizationMat * tmpPointMat;
+		cv::Point3d tmpPoint3d;
+		tmpPoint3d.x = (double)(*it).x;
+		tmpPoint3d.y = (double)(*it).y;
+		tmpPoint3d.z = (double)(*it).z;
+		cv::Mat tmpPoint3dMat(tmpPoint3d, true);
+		cv::Mat normalizedPointsMat = normalizationMat * tmpPoint3dMat;
 		cv::Point3f tmpPointNormalized;
-		tmpPointNormalized.x = normalizedPointsMat.at<float>(0,0);
-		tmpPointNormalized.y = normalizedPointsMat.at<float>(1,0);
-		tmpPointNormalized.z = normalizedPointsMat.at<float>(2,0);
+		tmpPointNormalized.x = (float)normalizedPointsMat.at<double>(0,0);
+		tmpPointNormalized.y = (float)normalizedPointsMat.at<double>(1,0);
+		tmpPointNormalized.z = (float)normalizedPointsMat.at<double>(2,0);
 		normalizedPoints.push_back(tmpPointNormalized);
 	}
 	return normalizedPoints;

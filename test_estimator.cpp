@@ -23,7 +23,7 @@ int __main(){
 std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2) {
     std::vector<double> results;
 	std::cout << "Verifying the fundamental matrix using line equation." << std::endl;
-	for (int i = 0; i < points1.size(); i++) {
+	for (int i = 0; i < (int)points1.size(); i++) {
 		cv::Mat point1Mat(cv::Size(1,3), CV_64FC1);
         cv::Mat point2Mat(cv::Size(1,3), CV_64FC1);
         point1Mat.at<double>(0,0) = (double)points1[i].x;
@@ -47,13 +47,13 @@ void test_estimateFundamentalMatrix(){
     std::vector<std::string> imageFileNames1{"img1.jpg", "Lab_1.jpg", "Building_1.jpg"};
     std::vector<std::string> imageFileNames2{"img2.jpg", "Lab_2.jpg", "Building_2.jpg"};
 
-    for(int i = 0; i < imageFileNames1.size(); i++){
+    for(int i = 0; i < (int)imageFileNames1.size(); i++){
         std::string currentImageFileName1 = imageFileNames1[i];
         std::string currentImageFileName2 = imageFileNames2[i];
         cv::Mat image1 = cv::imread(currentImageFileName1);
         cv::Mat image2 = cv::imread(currentImageFileName2);
 
-        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
 
         std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
         std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
@@ -90,13 +90,13 @@ void test_fundamentalMatrixOpencv(){
     std::vector<std::string> imageFileNames1{"img1.jpg", "Lab_1.jpg", "Building_1.jpg"};
     std::vector<std::string> imageFileNames2{"img2.jpg", "Lab_2.jpg", "Building_2.jpg"};
 
-    for(int i = 0; i < imageFileNames1.size(); i++){
+    for(int i = 0; i < (int)imageFileNames1.size(); i++){
         std::string currentImageFileName1 = imageFileNames1[i];
         std::string currentImageFileName2 = imageFileNames2[i];
         cv::Mat image1 = cv::imread(currentImageFileName1);
         cv::Mat image2 = cv::imread(currentImageFileName2);
 
-        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListTmp = Util::extractMatches(image1, image2);
+        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListTmp = Util::extractMatches(image1, image2, 8);
         std::vector<cv::Point2f> correspondingPoints1Tmp;
         std::vector<cv::Point2f> correspondingPoints2Tmp;
         for(int i = 0; i < 8; i++){

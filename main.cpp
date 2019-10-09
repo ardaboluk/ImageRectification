@@ -30,14 +30,18 @@ std::string image2FileName;
 
 int main(int argc, char* argv[]) {
 
-	//debugWithOpenCV("img1.jpg", "img2.jpg");
-	Rectification rectificator("img1.jpg", "img2.jpg");
-	std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages();
-	cv::namedWindow("RectifiedImage1");
-	cv::namedWindow("RectifiedImage2");
-	cv::imshow("RectifiedImage1", rectifiedImages.first);
-	cv::imshow("RectifiedImage2", rectifiedImages.second);
-	cv::waitKey(0);
+	std::string custom_or_debug(argv[1]);
+	if(custom_or_debug.compare("custom") == 0){
+		Rectification rectificator("img1.jpg", "img2.jpg");
+		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages();
+		cv::namedWindow("RectifiedImage1");
+		cv::namedWindow("RectifiedImage2");
+		cv::imshow("RectifiedImage1", rectifiedImages.first);
+		cv::imshow("RectifiedImage2", rectifiedImages.second);
+		cv::waitKey(0);
+	}else if(custom_or_debug.compare("debug") == 0){
+		debugWithOpenCV("img1.jpg", "img2.jpg");
+	}	
 	
 	/*if (argc > 2) {
 		image1FileName = argv[1];
@@ -197,9 +201,11 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 
 	cv::Mat image1 = cv::imread(image1FileName);
 	cv::Mat image2 = cv::imread(image2FileName);
-	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2);
+	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
 	std::vector<Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
+
+
 	
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);

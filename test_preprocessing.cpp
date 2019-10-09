@@ -62,7 +62,6 @@ void test_normalizeCoordinates(){
         std::vector<cv::Point3f> normalizedPoints3f = Preprocessing::normalizeCoordinates(points3f, normalizationMat);
         
         cv::Point3f normCenter;
-        float normAvgDistance = 0;
         for(auto it = normalizedPoints3f.begin(); it != normalizedPoints3f.end(); ++it){
             normCenter += (*it);
         }

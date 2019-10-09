@@ -37,7 +37,7 @@ cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::M
 	normalizationMat1.convertTo(normalizationMat1_64F, CV_64FC1);
 	normalizationMat2.convertTo(normalizationMat2_64F, CV_64FC1);
 	
-	cv::Mat denormalizedFundamentalMatrix = (normalizationMat2_64F.t() * fundamentalMatrix) * normalizationMat1_64F;
+	cv::Mat denormalizedFundamentalMatrix = normalizationMat2_64F.t() * fundamentalMatrix * normalizationMat1_64F;
 
 	double fmat22 = denormalizedFundamentalMatrix.at<double>(2,2);
 	for(int i = 0; i < 3; i++){

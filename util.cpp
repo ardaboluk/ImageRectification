@@ -8,7 +8,7 @@ void Util::displayMat(cv::Mat& cvMatrix, std::string explanation) {
 	std::cout << std::endl;
 }
 
-std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatches(cv::Mat image1, cv::Mat image2){
+std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatches(cv::Mat image1, cv::Mat image2, int numPoints){
 
 	std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
     cv::Mat descriptors_1, descriptors_2;
@@ -43,12 +43,21 @@ std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatch
     printf ( "-- Max dist : %f \n", max_dist);
     printf ( "-- Min dist : %f \n", min_dist);
 
+    if(numPoints < 0){
+        numPoints = descriptors_1.rows;
+    }
+
     std::vector<cv::DMatch> good_matches;
-    for ( int i = 0; (unsigned int)i < descriptors_1.rows; i++)
+    int matches_count = 0;
+    for ( int i = 0; i < descriptors_1.rows; i++)
     {
+        if(matches_count >= numPoints){
+            break;
+        }
         if ( matches[i].distance <= cv::max(2*min_dist, 30.0))
         {
             good_matches.push_back (matches[i]);
+            matches_count++;
         }
     }
 
@@ -62,7 +71,7 @@ std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatch
 
 	std::vector<cv::Point2f> correspondingPoints1;
 	std::vector<cv::Point2f> correspondingPoints2;
-	for(int i = 0; i < good_matches.size(); i++){
+	for(int i = 0; i < (int)good_matches.size(); i++){
 		int idx1 = good_matches[i].queryIdx;
 		int idx2 = good_matches[i].trainIdx;
 		correspondingPoints1.push_back(keypoints_1[idx1].pt);
