@@ -96,8 +96,8 @@ std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> Rectification::get
 		point2.z = 1.0;
 		point2Mat = cv::Mat(point2);
 
-		cv::Mat line1Mat = fundamentalMatrix * point1Mat;
-		cv::Mat line2Mat = fundamentalMatrix.t() * point2Mat;
+		cv::Mat line2Mat = fundamentalMatrix * point1Mat;
+		cv::Mat line1Mat = fundamentalMatrix.t() * point2Mat;
 		cv::Point3d line1;
 		cv::Point3d line2;
 		line1.x = line1Mat.at<double>(0,0);

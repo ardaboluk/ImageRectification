@@ -53,24 +53,17 @@ cv::Mat Estimator::estimateFundamentalMatrix(){
 	cv::Mat w, u, vt;
 	// u * diag(w) * vt
 	cv::SVDecomp(hms, w, u, vt, cv::SVD::FULL_UV);
+	cv::Mat v = vt.t();
 	cv::Mat fundamentalMatrix = cv::Mat::zeros(cv::Size(3, 3), CV_64FC1);
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
-			fundamentalMatrix.at<double>(i, j) = vt.col(8).at<double>(i * 3 + j);
+			fundamentalMatrix.at<double>(i, j) = v.col(8).at<double>(i * 3 + j);
 		}
 	}
 	// enforce rank-2 constraint
 	cv::Mat w1, u1, vt1;
 	cv::SVDecomp(fundamentalMatrix, w1, u1, vt1, cv::SVD::FULL_UV);
-	int minInd = 0;
-	double minValue = *w1.ptr<double>(0);
-	for (int i = 1; i < w1.rows; i++) {
-		if (*w1.ptr<double>(i) < minValue) {
-			minValue = *w1.ptr<double>(i);
-			minInd = i;
-		}
-	}
-	*w1.ptr<double>(minInd) = 0;
+	w1.at<double>(2,0) = 0;
 	cv::Mat fundamentalMatrixRank2 = u1 * cv::Mat::diag(w1) * vt1;
 
 	return fundamentalMatrixRank2;

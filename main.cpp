@@ -204,8 +204,6 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
 	std::vector<Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
-
-
 	
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
