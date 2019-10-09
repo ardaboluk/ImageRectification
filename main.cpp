@@ -28,7 +28,7 @@ void debugSaveCorrespondencesToMat(cv::Mat correspondences, std::string filename
 std::string image1FileName;
 std::string image2FileName;
 
-int main(int argc, char* argv[]) {
+int __main(int argc, char* argv[]) {
 
 	std::string custom_or_debug(argv[1]);
 	if(custom_or_debug.compare("custom") == 0){

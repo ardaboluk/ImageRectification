@@ -12,7 +12,7 @@ std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vecto
 void test_estimateFundamentalMatrix();
 void test_fundamentalMatrixOpencv();
 
-int __main(){
+int main(){
 
     test_fundamentalMatrixOpencv();
     test_estimateFundamentalMatrix();
@@ -78,11 +78,13 @@ void test_estimateFundamentalMatrix(){
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrixDenormalized, correspondingPoints1, correspondingPoints2);
-        double epsilond = std::numeric_limits<double>::epsilon() * 100;
+        double epsilond = 0.1;//std::numeric_limits<double>::epsilon() * 100;
         for(auto it = results.begin(); it != results.end(); ++it){
             assert((*it) < epsilond);
         }
     }
+
+    std::cout << "TEST SUCCESSFUL" << std::endl;
 }
 
 void test_fundamentalMatrixOpencv(){
@@ -114,9 +116,11 @@ void test_fundamentalMatrixOpencv(){
         cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix_opencv();
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrix, correspondingPointsListTmp.first, correspondingPointsListTmp.second);
-        double epsilond = std::numeric_limits<double>::epsilon() * 100;
+        double epsilond = 0.1;//std::numeric_limits<double>::epsilon() * 100;
         for(auto it = results.begin(); it != results.end(); ++it){
             assert((*it) < epsilond);
         }
     }
+
+    std::cout << "TEST SUCCESSFUL" << std::endl;
 }
