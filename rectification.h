@@ -18,6 +18,7 @@ public:
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> getEpilines(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondenceList, cv::Mat fundamentalMatrix);
 	void drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines, cv::Mat image1, cv::Mat image2);
 	void drawEpipoles(cv::Point2d epipoleImage1, cv::Point2d epipoleImage2, cv::Mat image1, cv::Mat image2);
+	cv::Mat warpImagePerspective(cv::Mat homographyMat, cv::Mat image, cv::Size newImageSize);
 	
 	static std::vector<cv::Mat> getEpilinesDebug(float** pointCorrespondences, int numPoints, cv::Mat fundamentalMatrix);
 	

@@ -121,9 +121,55 @@ cv::Point2d Estimator::estimateEpipole(std::vector<cv::Point3d> epilines){
 	return epipole;
 }
 
-std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
+cv::Mat Estimator::estimateHomography2(cv::Point2d epipole2, cv::Size image2Size){
+	// Reference:
+	// web.stanford.edu/class/cs231a/course_notes/03-epipolar-geometry.pdf
 
+	cv::Mat H2;
+
+	cv::Mat T = cv::Mat::zeros(cv::Size(3,3), CV_64FC1);
+	cv::Mat R = cv::Mat::zeros(cv::Size(3,3), CV_64FC1);
+	cv::Mat epipole2Mat(cv::Size(1,3), CV_64FC1);
+
+	epipole2Mat.at<double>(0,0) = epipole2.x;
+	epipole2Mat.at<double>(1,0) = epipole2.y;
+	epipole2Mat.at<double>(2,0) = 1.0;
+
+	T.at<double>(0,0) = 1.0;
+	T.at<double>(0,2) = -((double)image2Size.width / 2);
+	T.at<double>(1,1) = 1.0;
+	T.at<double>(1,2) = -((double)image2Size.height / 2);
+	T.at<double>(2,2) = 1.0;
+
+	cv::Mat Te2 = T * epipole2Mat;
+
+	double Te2x = Te2.at<double>(0,0);
+	double Te2y = Te2.at<double>(1,0);
+	double alpha = Te2x >= 0 ? 1.0 : -1.0;
+	double hypotenuse = sqrt(pow(Te2x,2) + pow(Te2y,2));
+	R.at<double>(0,0) = alpha * (Te2x / hypotenuse);
+	R.at<double>(0,1) = alpha * (Te2y / hypotenuse);
+	R.at<double>(0,2) = 0;
+	R.at<double>(1,0) = (-alpha) * (Te2y / hypotenuse);
+	R.at<double>(1,1) = alpha * (Te2x / hypotenuse);
+	R.at<double>(1,2) = 0;
+	R.at<double>(2,0) = 0;
+	R.at<double>(2,1) = 0;
+	R.at<double>(2,2) = 1.0;
+
+	double f = cv::Mat(R * T * epipole2Mat).at<double>(0,0);
+
+	cv::Mat G = cv::Mat::diag(cv::Mat(cv::Point3d(1.0, 1.0, 1.0)));
+	G.at<double>(2,0) = -1.0/f;
+
+	H2 = T.inv() * G * R * T;
+
+	return H2;
 }
+
+ std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
+
+ }
 
 std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
 	cv::Mat homographyMat1;

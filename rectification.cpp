@@ -61,6 +61,12 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	std::pair<cv::Mat, cv::Mat> homographyMatrices = estimator.estimateHomographyMatrices_openCV(correspondingPointsList, cv::Size(image1.cols, image1.rows), fundamentalMatrixDenormalized);
 	cv::Mat homographyMat1 = homographyMatrices.first;
 	cv::Mat homographyMat2 = homographyMatrices.second;
+
+	cv::Mat H2 = estimator.estimateHomography2(epipole2, image2.size());
+	cv::Mat warpedImage2Debug = warpImagePerspective(H2, image2, image2.size());
+	cv::namedWindow("WarpDebug");
+	cv::imshow("WarpDebug", warpedImage2Debug);
+	cv::waitKey(0);
 	
 	cv::Mat warpedImage1;
 	cv::Mat warpedImage2;
@@ -168,6 +174,31 @@ void Rectification::drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector
 void Rectification::drawEpipoles(cv::Point2d epipoleImage1, cv::Point2d epipoleImage2, cv::Mat image1, cv::Mat image2){
 	cv::circle(image1, epipoleImage1, 3, cv::Scalar(0,255,0), -1);
 	cv::circle(image2, epipoleImage2, 3, cv::Scalar(0,255,0), -1);
+}
+
+cv::Mat Rectification::warpImagePerspective(cv::Mat homographyMat, cv::Mat image, cv::Size newImageSize){
+
+	cv::Mat warpedImage = cv::Mat(newImageSize, image.type());
+
+	for(int i = 0; i < image.rows; i++){
+		for(int j = 0; j < image.cols; j++){
+			cv::Point3d currentImage1PixelPoint;
+			currentImage1PixelPoint.x = (double)j;
+			currentImage1PixelPoint.y = (double)i;
+			currentImage1PixelPoint.z = 1.0;
+
+			cv::Mat currentTransformedPointMat = homographyMat * cv::Mat(currentImage1PixelPoint);
+			double transformedX = currentTransformedPointMat.at<double>(0,0) / currentTransformedPointMat.at<double>(2,0);
+			double transformedY = currentTransformedPointMat.at<double>(1,0) / currentTransformedPointMat.at<double>(2,0);
+
+			//std::cout << "transformedY: " << (int)transformedY << " transformedX: " << (int)transformedX << std::endl;
+			if(transformedY >= 0 && transformedY < newImageSize.height && transformedX >= 0 && transformedX < newImageSize.width){
+				warpedImage.at<cv::Vec3b>((int)transformedY, (int)transformedX) = image.at<cv::Vec3b>(i, j);
+			}
+		}
+	}
+
+	return warpedImage;
 }
 
 void Rectification::drawEpilinesDebug(std::vector<cv::Mat> epilines, int numLines, cv::Mat image1, cv::Mat image2) {
