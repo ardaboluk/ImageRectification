@@ -167,6 +167,50 @@ cv::Mat Estimator::estimateHomography2(cv::Point2d epipole2, cv::Size image2Size
 	return H2;
 }
 
+cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homography2, cv::Point2d epipole1, std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList){
+
+	cv::Mat H1;
+
+	cv::Mat skewEx = cv::Mat::zeros(cv::Size(3,3), CV_64FC1);
+	skewEx.at<double>(0,1) = -1.0;
+	skewEx.at<double>(0,2) = epipole1.y;
+	skewEx.at<double>(1,0) = 1.0;
+	skewEx.at<double>(1,2) = -(epipole1.x);
+	skewEx.at<double>(2,0) = -(epipole1.y);
+	skewEx.at<double>(2,1) = epipole1.x;
+
+	double data[] = {epipole1.x, epipole1.y, 1.0};
+	cv::Mat M = skewEx * fundamentalMat + cv::Mat(cv::Size(1,3), CV_64FC1, data) * cv::Mat::ones(cv::Size(3,1), CV_64FC1);
+
+	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
+	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
+
+	std::vector<cv::Point3d> transformedP;
+	std::vector<cv::Point3d> transformedPPrime;
+
+	std::vector<cv::Point3f> points3 = Preprocessing::transformPointsToHomogen(correspondingPoints1);
+	std::vector<cv::Point3f> pointsPrime3 = Preprocessing::transformPointsToHomogen(correspondingPoints2);
+
+	for(int i = 0; i < points3.size(); i++){
+		cv::Mat pointMat3;
+		cv::Mat pointPrimeMat3;
+		cv::Mat(points3[i]).convertTo(pointMat3, CV_64FC1);
+		cv::Mat(pointsPrime3[i]).convertTo(pointPrimeMat3, CV_64FC1);
+
+		cv::Mat transformedPointMat3 = homography2 * M * pointMat3;
+		cv::Mat transformedPointPrimeMat3 = homography2 * pointPrimeMat3;
+		cv::Point3d transformedPoint3(transformedPointMat3.at<double>(0,0) / transformedPointMat3.at<double>(2,0), transformedPointMat3.at<double>(1,0) / transformedPointMat3.at<double>(2,0), 1.0);
+		cv::Point3d transformedPointPrime3(transformedPointPrimeMat3.at<double>(0,0) / transformedPointPrimeMat3.at<double>(2,0), transformedPointPrimeMat3.at<double>(1,0) / transformedPointPrimeMat3.at<double>(2,0), 1.0);
+
+		transformedP.push_back(transformedPoint3);
+		transformedPPrime.push_back(transformedPointPrime3);
+
+		
+	}
+
+	return H1;
+}
+
  std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
 
  }
