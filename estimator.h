@@ -13,6 +13,7 @@ public:
 	cv::Mat denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2);
 	cv::Mat estimateFundamentalMatrix();
 	cv::Mat estimateFundamentalMatrix_opencv();
-	std::pair<cv::Mat, cv::Mat> estimateHomographyMatrices();
+	cv::Point2d estimateEpipole(std::vector<cv::Point3d> epilines);
+	std::pair<cv::Mat, cv::Mat> estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix);
 	std::pair<cv::Mat, cv::Mat> estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix);
 };

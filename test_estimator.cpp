@@ -12,7 +12,7 @@ std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vecto
 void test_estimateFundamentalMatrix();
 void test_fundamentalMatrixOpencv();
 
-int main(){
+int __main(){
 
     test_fundamentalMatrixOpencv();
     test_estimateFundamentalMatrix();

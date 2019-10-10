@@ -44,9 +44,12 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	std::cout << fundamentalMatrixDenormalized << std::endl;
 
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines = getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);
+	cv::Point2d epipole1 = estimator.estimateEpipole(epilines.first);
+	cv::Point2d epipole2 = estimator.estimateEpipole(epilines.second);
 	cv::Mat image1WithEpilines = image1.clone();
 	cv::Mat image2WithEpilines = image2.clone();
 	drawEpilines(epilines, image1WithEpilines, image2WithEpilines);
+	drawEpipoles(epipole1, epipole2, image1WithEpilines, image2WithEpilines);
 	std::string epilines1WindowName = "Epilines1";
 	std::string epilines2WindowName = "Epilines2";
 	cv::namedWindow(epilines1WindowName);
@@ -160,6 +163,11 @@ void Rectification::drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector
 		cv::line(image1, p1Start, p1End, cv::Scalar(0, 0, 255));
 		cv::line(image2, p2Start, p2End, cv::Scalar(0, 0, 255));
 	}
+}
+
+void Rectification::drawEpipoles(cv::Point2d epipoleImage1, cv::Point2d epipoleImage2, cv::Mat image1, cv::Mat image2){
+	cv::circle(image1, epipoleImage1, 3, cv::Scalar(0,255,0), -1);
+	cv::circle(image2, epipoleImage2, 3, cv::Scalar(0,255,0), -1);
 }
 
 void Rectification::drawEpilinesDebug(std::vector<cv::Mat> epilines, int numLines, cv::Mat image1, cv::Mat image2) {

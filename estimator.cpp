@@ -51,7 +51,7 @@ cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::M
 
 cv::Mat Estimator::estimateFundamentalMatrix(){
 	cv::Mat w, u, vt;
-	// u * diag(w) * vt
+	// u * diag(w) * v
 	cv::SVDecomp(hms, w, u, vt, cv::SVD::FULL_UV);
 	cv::Mat v = vt.t();
 	cv::Mat fundamentalMatrix = cv::Mat::zeros(cv::Size(3, 3), CV_64FC1);
@@ -79,6 +79,50 @@ cv::Mat Estimator::estimateFundamentalMatrix_opencv(){
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
 	return FMat;
+}
+
+/*
+* Epilines are represented by cv::Point3d in the form (a, b, c) where ax + by + c = 0
+*/
+cv::Point2d Estimator::estimateEpipole(std::vector<cv::Point3d> epilines){
+	cv::Point2d epipole;
+
+	// line equations Ax = 0 where A = [e1 e2 ...].t(), ek = [ak bk ck] and x = [x1 x2 1].t()
+	cv::Mat A(cv::Size(2, epilines.size()), CV_64FC1);
+	cv::Mat b(cv::Size(1, epilines.size()), CV_64FC1);
+	for(int i = 0; i < (int)epilines.size(); i++){
+		A.at<double>(i,0) = epilines[i].x;
+		A.at<double>(i,1) = epilines[i].y;
+
+		b.at<double>(i,0) = -(epilines[i].z);
+	}
+
+	cv::Mat W, U, Vt, V;
+	cv::SVD::compute(A, W, U, Vt);
+	V = Vt.t();
+
+	double threshold = 10e-12 * abs(W.at<double>(0,0));
+
+	cv::Mat Z(cv::Size(1, W.rows), CV_64FC1);
+	for(int i = 0; i < W.rows; i++){
+		double w_i = W.at<double>(i,0);
+		if(w_i > threshold){
+			Z.at<double>(i,0) = 1 / w_i;
+		}else{
+			Z.at<double>(i,0) = 0;
+		}
+	}
+	cv::Mat diagZ = cv::Mat::diag(Z);
+
+	cv::Mat epipoleMat = V * diagZ * U.t() * b;
+	epipole.x = epipoleMat.at<double>(0,0);
+	epipole.y = epipoleMat.at<double>(1,0);
+
+	return epipole;
+}
+
+std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
+
 }
 
 std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
