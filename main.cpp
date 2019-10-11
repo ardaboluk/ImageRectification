@@ -34,11 +34,6 @@ int main(int argc, char* argv[]) {
 	if(custom_or_debug.compare("custom") == 0){
 		Rectification rectificator("img1.jpg", "img2.jpg");
 		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages();
-		cv::namedWindow("RectifiedImage1");
-		cv::namedWindow("RectifiedImage2");
-		cv::imshow("RectifiedImage1", rectifiedImages.first);
-		cv::imshow("RectifiedImage2", rectifiedImages.second);
-		cv::waitKey(0);
 	}else if(custom_or_debug.compare("debug") == 0){
 		debugWithOpenCV("img1.jpg", "img2.jpg");
 	}	
@@ -201,12 +196,12 @@ void debugWithOpenCV(std::string image1FileName, std::string image2FileName){
 
 	cv::Mat image1 = cv::imread(image1FileName);
 	cv::Mat image2 = cv::imread(image2FileName);
-	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
+	std::pair<std::vector<Point2f>, std::vector<Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, -1);
 	std::vector<Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<Point2f> correspondingPoints2 = correspondingPointsList.second;
 	
 	cv::Mat FMat;
-	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
+	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_RANSAC);
 	std::cout << FMat << std::endl;
 
 	cv::Mat H1, H2;

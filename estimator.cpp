@@ -167,19 +167,19 @@ cv::Mat Estimator::estimateHomography2(cv::Point2d epipole2, cv::Size image2Size
 	return H2;
 }
 
-cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homography2, cv::Point2d epipole1, std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList){
+cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homography2, cv::Point2d epipole2, std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList){
 
 	cv::Mat H1;
 
 	cv::Mat skewEx = cv::Mat::zeros(cv::Size(3,3), CV_64FC1);
 	skewEx.at<double>(0,1) = -1.0;
-	skewEx.at<double>(0,2) = epipole1.y;
+	skewEx.at<double>(0,2) = epipole2.y;
 	skewEx.at<double>(1,0) = 1.0;
-	skewEx.at<double>(1,2) = -(epipole1.x);
-	skewEx.at<double>(2,0) = -(epipole1.y);
-	skewEx.at<double>(2,1) = epipole1.x;
+	skewEx.at<double>(1,2) = -(epipole2.x);
+	skewEx.at<double>(2,0) = -(epipole2.y);
+	skewEx.at<double>(2,1) = epipole2.x;
 
-	double data[] = {epipole1.x, epipole1.y, 1.0};
+	double data[] = {epipole2.x, epipole2.y, 1.0};
 	cv::Mat M = skewEx * fundamentalMat + cv::Mat(cv::Size(1,3), CV_64FC1, data) * cv::Mat::ones(cv::Size(3,1), CV_64FC1);
 
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
@@ -211,10 +211,6 @@ cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homograph
 
 	cv::solve(transformedP, transformedPPrimeX, a, cv::DECOMP_SVD);
 
-	std::cout << "transformedP: " << transformedP << std::endl;
-	std::cout << "transformedPPrimeX: " << transformedPPrimeX << std::endl;
-	std::cout << "a: " << a << std::endl;
-
 	double a1 = a.at<double>(0,0);
 	double a2 = a.at<double>(1,0);
 	double a3 = a.at<double>(2,0);
@@ -228,10 +224,6 @@ cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homograph
 
 	return H1;
 }
-
- std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
-
- }
 
 std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
 	cv::Mat homographyMat1;

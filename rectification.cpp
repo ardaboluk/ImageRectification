@@ -62,22 +62,16 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	cv::Mat homographyMat2 = homographyMatrices.second;
 
 	cv::Mat H2 = estimator.estimateHomography2(epipole2, image2.size());
-	cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole1, correspondingPointsList);
-	cv::Mat warpedImage2Debug;
-	cv::Mat warpedImage1Debug;
-	cv::warpPerspective(image2WithEpilines, warpedImage2Debug, H2, cv::Size(image2.cols, image2.rows));
-	cv::warpPerspective(image1WithEpilines, warpedImage1Debug, H1, cv::Size(image1.cols, image1.rows));
-	cv::namedWindow("WarpDebug2");
-	cv::imshow("WarpDebug2", warpedImage2Debug);
-	cv::namedWindow("WarpDebug1");
-	cv::imshow("WarpDebug1", warpedImage1Debug);
-	cv::waitKey(0);
-	
-	cv::Mat warpedImage1;
+	cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole2, correspondingPointsList);
 	cv::Mat warpedImage2;
-
-	warpedImage1 = warpImage(image1, homographyMat1);
-	warpedImage2 = warpImage(image2, homographyMat2);
+	cv::Mat warpedImage1;
+	cv::warpPerspective(image2WithEpilines, warpedImage2, H2, cv::Size(image2.cols, image2.rows));
+	cv::warpPerspective(image1WithEpilines, warpedImage1, H1, cv::Size(image1.cols, image1.rows));
+	cv::namedWindow("Warped Image 2");
+	cv::imshow("Warped Image 2", warpedImage2);
+	cv::namedWindow("Warped Image 1");
+	cv::imshow("Warped Image 1", warpedImage1);
+	cv::waitKey(0);
 
 	std::pair<cv::Mat, cv::Mat> warpedImages;
 	warpedImages.first = warpedImage1;
