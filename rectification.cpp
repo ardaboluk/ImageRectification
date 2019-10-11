@@ -18,8 +18,14 @@ cv::Mat Rectification::warpImage(cv::Mat image, cv::Mat homography){
 	return warpedImage;
 }
 
-std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList = Util::extractMatches(image1, image2, 8);
+std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
+	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList;
+	if(use_ransac){
+		correspondingPointsList = Util::extractMatches(image1, image2, -1);
+	}else{
+		correspondingPointsList = Util::extractMatches(image1, image2, 8);
+	}
+
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
 	std::vector<cv::Point3f> correspondingPoints1_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1);
@@ -35,7 +41,12 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	std::vector<cv::Point2f> correspondingPoints2_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized);
 
 	Estimator estimator;
-	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
+	cv::Mat fundamentalMatrix;
+	if(use_ransac){
+		fundamentalMatrix = estimator.estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized);
+	}else{
+		fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
+	}
 	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines = getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);
@@ -52,10 +63,6 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	cv::imshow(epilines1WindowName, image1WithEpilines);
 	cv::imshow(epilines2WindowName, image2WithEpilines);
 	cv::waitKey(0);
-
-	std::pair<cv::Mat, cv::Mat> homographyMatrices = estimator.estimateHomographyMatrices_openCV(correspondingPointsList, cv::Size(image1.cols, image1.rows), fundamentalMatrixDenormalized);
-	cv::Mat homographyMat1 = homographyMatrices.first;
-	cv::Mat homographyMat2 = homographyMatrices.second;
 
 	cv::Mat H2 = estimator.estimateHomography2(epipole2, image2.size());
 	cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole2, correspondingPointsList);

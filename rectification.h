@@ -14,7 +14,7 @@ private:
 
 public:
 	Rectification(std::string image1FileName, std::string image2FileName);
-	std::pair<cv::Mat, cv::Mat> rectifyImages();
+	std::pair<cv::Mat, cv::Mat> rectifyImages(bool use_ransac);
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> getEpilines(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondenceList, cv::Mat fundamentalMatrix);
 	void drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines, cv::Mat image1, cv::Mat image2);
 	void drawEpipoles(cv::Point2d epipoleImage1, cv::Point2d epipoleImage2, cv::Mat image1, cv::Mat image2);

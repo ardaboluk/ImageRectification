@@ -66,6 +66,10 @@ cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspond
 
 cv::Mat Estimator::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
 
+	std::vector<cv::Point2f> correspondingPoints1_randomSubset;
+	std::vector<cv::Point2f> correspondingPoints2_randomSubset;
+
+	
 }
 
 /* 
@@ -222,17 +226,16 @@ cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homograph
 	return H1;
 }
 
+
+/*
+* This method is used in test_fundamentalMatrixOpencv in test_estimator.
+*/
 std::pair<cv::Mat, cv::Mat> Estimator::estimateHomographyMatrices_openCV(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList, cv::Size imageSize, cv::Mat fundamentalMatrix){
 	cv::Mat homographyMat1;
 	cv::Mat homographyMat2;
 
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
-
-	// std::cout << "correspondingPoints1" << std::endl << correspondingPoints1 << std::endl;
-	// std::cout << "correspondingPoints2" << std::endl << correspondingPoints2 << std::endl;
-	// std::cout << "fundamental matrix" << std::endl << fundamentalMatrix << std::endl;
-	// std::cout << "image rows " << imageSize.height << " image cols " << imageSize.width << std::endl;
 
 	cv::stereoRectifyUncalibrated(correspondingPoints1, correspondingPoints2, fundamentalMatrix, imageSize, homographyMat1, homographyMat2, 3);
 
