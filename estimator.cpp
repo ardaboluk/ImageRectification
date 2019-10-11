@@ -185,13 +185,13 @@ cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homograph
 	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
 	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
 
-	std::vector<cv::Point3d> transformedP;
-	std::vector<cv::Point3d> transformedPPrime;
+	cv::Mat transformedP(cv::Size(3,correspondingPoints1.size()), CV_64FC1);
+	cv::Mat transformedPPrimeX(cv::Size(1,correspondingPoints1.size()), CV_64FC1);
 
 	std::vector<cv::Point3f> points3 = Preprocessing::transformPointsToHomogen(correspondingPoints1);
 	std::vector<cv::Point3f> pointsPrime3 = Preprocessing::transformPointsToHomogen(correspondingPoints2);
 
-	for(int i = 0; i < points3.size(); i++){
+	for(int i = 0; i < (int)points3.size(); i++){
 		cv::Mat pointMat3;
 		cv::Mat pointPrimeMat3;
 		cv::Mat(points3[i]).convertTo(pointMat3, CV_64FC1);
@@ -199,14 +199,32 @@ cv::Mat Estimator::estimateHomography1(cv::Mat fundamentalMat, cv::Mat homograph
 
 		cv::Mat transformedPointMat3 = homography2 * M * pointMat3;
 		cv::Mat transformedPointPrimeMat3 = homography2 * pointPrimeMat3;
-		cv::Point3d transformedPoint3(transformedPointMat3.at<double>(0,0) / transformedPointMat3.at<double>(2,0), transformedPointMat3.at<double>(1,0) / transformedPointMat3.at<double>(2,0), 1.0);
-		cv::Point3d transformedPointPrime3(transformedPointPrimeMat3.at<double>(0,0) / transformedPointPrimeMat3.at<double>(2,0), transformedPointPrimeMat3.at<double>(1,0) / transformedPointPrimeMat3.at<double>(2,0), 1.0);
 
-		transformedP.push_back(transformedPoint3);
-		transformedPPrime.push_back(transformedPointPrime3);
+		transformedP.at<double>(i,0) = transformedPointMat3.at<double>(0,0) / transformedPointMat3.at<double>(2,0);
+		transformedP.at<double>(i,1) = transformedPointMat3.at<double>(1,0) / transformedPointMat3.at<double>(2,0);
+		transformedP.at<double>(i,2) = 1.0;
 
-		
+		transformedPPrimeX.at<double>(i,0) = transformedPointPrimeMat3.at<double>(0,0) / transformedPointPrimeMat3.at<double>(2,0);
 	}
+
+	cv::Mat a;//(cv::Size(1,3), CV_64FC1);
+
+	cv::solve(transformedP, transformedPPrimeX, a, cv::DECOMP_SVD);
+
+	std::cout << "transformedP: " << transformedP << std::endl;
+	std::cout << "transformedPPrimeX: " << transformedPPrimeX << std::endl;
+	std::cout << "a: " << a << std::endl;
+
+	double a1 = a.at<double>(0,0);
+	double a2 = a.at<double>(1,0);
+	double a3 = a.at<double>(2,0);
+
+	cv::Mat HA = cv::Mat::eye(cv::Size(3,3), CV_64FC1);
+	HA.at<double>(0,0) = a1;
+	HA.at<double>(0,1) = a2;
+	HA.at<double>(0,2) = a3;
+
+	H1 = HA * homography2 * M;
 
 	return H1;
 }

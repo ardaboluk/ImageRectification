@@ -62,7 +62,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	cv::Mat homographyMat2 = homographyMatrices.second;
 
 	cv::Mat H2 = estimator.estimateHomography2(epipole2, image2.size());
-	cv::Mat H1 = estimator.estimateHomography1(epipole1, image1.size());
+	cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole1, correspondingPointsList);
 	cv::Mat warpedImage2Debug;
 	cv::Mat warpedImage1Debug;
 	cv::warpPerspective(image2WithEpilines, warpedImage2Debug, H2, cv::Size(image2.cols, image2.rows));
