@@ -34,12 +34,8 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(){
 	std::vector<cv::Point2f> correspondingPoints1_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_3f_normalized);
 	std::vector<cv::Point2f> correspondingPoints2_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized);
 
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList_normalized;
-	correspondingPointsList_normalized.first = correspondingPoints1_normalized;
-	correspondingPointsList_normalized.second = correspondingPoints2_normalized;
-
-	Estimator estimator(correspondingPointsList_normalized);
-	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
+	Estimator estimator;
+	cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
 	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines = getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);

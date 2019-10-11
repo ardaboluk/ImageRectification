@@ -7,15 +7,8 @@
 #include "preprocessing.h"
 #include "util.h"
 
-Estimator::Estimator(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListNormalized){
-	this->correspondingPointsListNormalized = correspondingPointsListNormalized;
-	hms = cv::Mat(cv::Size(9, 8), CV_64FC1);
-	buildHMSMatrix();
-}
-
-void Estimator::buildHMSMatrix() {
-	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsListNormalized.first;
-	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsListNormalized.second;
+cv::Mat Estimator::buildHMSMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2) {
+	cv::Mat hms(cv::Size(9,8), CV_64FC1);
 	for (int i = 0; i < 8; i++) {
 		cv::Point2f point = correspondingPoints1[i];
 		cv::Point2f pointPrime = correspondingPoints2[i];
@@ -29,6 +22,7 @@ void Estimator::buildHMSMatrix() {
 		hms.at<double>(i,7) = point.y; // y
 		hms.at<double>(i,8) = 1.0; // 1
 	}
+	return hms;
 }
 
 cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2){
@@ -49,7 +43,8 @@ cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::M
 	return denormalizedFundamentalMatrix;
 }
 
-cv::Mat Estimator::estimateFundamentalMatrix(){
+cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
+	cv::Mat hms = buildHMSMatrix(correspondingPoints1, correspondingPoints2);
 	cv::Mat w, u, vt;
 	// u * diag(w) * v
 	cv::SVDecomp(hms, w, u, vt, cv::SVD::FULL_UV);
@@ -69,13 +64,15 @@ cv::Mat Estimator::estimateFundamentalMatrix(){
 	return fundamentalMatrixRank2;
 }
 
+cv::Mat Estimator::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
+
+}
+
 /* 
 * If this method will be called, the private member correspondingPointsListNormalized should be given
 * corresponding points that aren't normalized.
 */
-cv::Mat Estimator::estimateFundamentalMatrix_opencv(){
-	std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsListNormalized.first;
-	std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsListNormalized.second;
+cv::Mat Estimator::estimateFundamentalMatrix_opencv(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
 	cv::Mat FMat;
 	FMat = cv::findFundamentalMat(correspondingPoints1, correspondingPoints2, CV_FM_8POINT);
 	return FMat;

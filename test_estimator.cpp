@@ -73,8 +73,8 @@ void test_estimateFundamentalMatrix(){
         correspondingPointsList_normalized.first = correspondingPoints1_normalized;
         correspondingPointsList_normalized.second = correspondingPoints2_normalized;
 
-        Estimator estimator(correspondingPointsList_normalized);
-        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix();
+        Estimator estimator;
+        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrixDenormalized, correspondingPoints1, correspondingPoints2);
@@ -99,21 +99,15 @@ void test_fundamentalMatrixOpencv(){
         cv::Mat image2 = cv::imread(currentImageFileName2);
 
         std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListTmp = Util::extractMatches(image1, image2, 8);
-        std::vector<cv::Point2f> correspondingPoints1Tmp;
-        std::vector<cv::Point2f> correspondingPoints2Tmp;
+        std::vector<cv::Point2f> correspondingPoints1;
+        std::vector<cv::Point2f> correspondingPoints2;
         for(int i = 0; i < 8; i++){
-            correspondingPoints1Tmp.push_back(correspondingPointsListTmp.first[i]);
-            correspondingPoints2Tmp.push_back(correspondingPointsListTmp.second[i]);
+            correspondingPoints1.push_back(correspondingPointsListTmp.first[i]);
+            correspondingPoints2.push_back(correspondingPointsListTmp.second[i]);
         }
-        std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList;
-        correspondingPointsList.first = correspondingPoints1Tmp;
-        correspondingPointsList.second = correspondingPoints2Tmp;
-
-        std::vector<cv::Point2f> correspondingPoints1 = correspondingPointsList.first;
-        std::vector<cv::Point2f> correspondingPoints2 = correspondingPointsList.second;
         
-        Estimator estimator(correspondingPointsList);
-        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix_opencv();
+        Estimator estimator;
+        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix_opencv(correspondingPoints1, correspondingPoints2);
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrix, correspondingPointsListTmp.first, correspondingPointsListTmp.second);
         double epsilond = 0.1;//std::numeric_limits<double>::epsilon() * 100;

@@ -5,16 +5,12 @@
 class Estimator {
 private:
 	// 8x9 homogeneous linear system
-	cv::Mat hms;
-	void buildHMSMatrix();
-	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListNormalized;
-	// origin is assumed to be at (0,0)
-	
+	cv::Mat buildHMSMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2);	
 public:
-	Estimator(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsListNormalized);
 	cv::Mat denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::Mat normalizationMat1, cv::Mat normalizationMat2);
-	cv::Mat estimateFundamentalMatrix();
-	cv::Mat estimateFundamentalMatrix_opencv();
+	cv::Mat estimateFundamentalMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2);
+	cv::Mat estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2);
+	cv::Mat estimateFundamentalMatrix_opencv(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2);
 	cv::Mat estimateHomography2(cv::Point2d epipole2, cv::Size image2Size);
 	cv::Mat estimateHomography1(cv::Mat fundamentalMat, cv::Mat homography2, cv::Point2d epipole2, std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList);
 	cv::Point2d estimateEpipole(std::vector<cv::Point3d> epilines);
