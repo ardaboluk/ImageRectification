@@ -32,21 +32,28 @@ std::vector<int> Rectification::getFMatInlierIndices(std::vector<cv::Point2f> co
 
 		cv::Mat line2Mat = fundamentalMatrix * point1Mat;
 		cv::Mat line1Mat = fundamentalMatrix.t() * point2Mat;
-		double a1 = line1Mat.at<double>(0,0);
-		double b1 = line1Mat.at<double>(1,0);
-		double c1 = line1Mat.at<double>(2,0);
-		double a2 = line2Mat.at<double>(0,0);
-		double b2 = line2Mat.at<double>(1,0);
-		double c2 = line2Mat.at<double>(2,0);
-		double x1 = point1Mat.at<double>(0,0);
-		double y1 = point1Mat.at<double>(1,0);
-		double x2 = point2Mat.at<double>(0,0);
-		double y2 = point2Mat.at<double>(1,0);
+		// double a1 = line1Mat.at<double>(0,0);
+		// double b1 = line1Mat.at<double>(1,0);
+		// double c1 = line1Mat.at<double>(2,0);
+		// double a2 = line2Mat.at<double>(0,0);
+		// double b2 = line2Mat.at<double>(1,0);
+		// double c2 = line2Mat.at<double>(2,0);
+		// double x1 = point1Mat.at<double>(0,0);
+		// double y1 = point1Mat.at<double>(1,0);
+		// double x2 = point2Mat.at<double>(0,0);
+		// double y2 = point2Mat.at<double>(1,0);
 
-		double distP1L2 = abs(a2*x1 + b2*y1 + c2) / sqrt(a2*a2 + b2*b2);
-		double distP2L1 = abs(a1*x2 + b1*y2 + c1) / sqrt(a1*a1 + b1*b1);
+		// double distP1L2 = abs(a2*x1 + b2*y1 + c2) / sqrt(a2*a2 + b2*b2);
+		// double distP2L1 = abs(a1*x2 + b1*y2 + c1) / sqrt(a1*a1 + b1*b1);
 
-		if(distP2L1 <= thr && distP1L2 <= thr){
+		// if(distP2L1 <= thr && distP1L2 <= thr){
+		// 	inlierIndices.push_back(i);
+		// }
+
+		cv::Mat resultMat = point2Mat.t() * fundamentalMatrix * point1Mat;
+		double score = resultMat.at<double>(0,0);
+
+		if(abs(score) <= thr){
 			inlierIndices.push_back(i);
 		}
 
@@ -160,7 +167,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat fundamentalMatrix;
 	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrix = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 2, 1000);
+		fundamentalMatrix = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 0.01, 50000);
 		fundamentalMatrixDenormalized = fundamentalMatrix.clone();
 	}else{
 		fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
