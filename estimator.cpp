@@ -1,6 +1,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <ctime>
+#include <cstdlib>
 
 #include "opencv2/opencv.hpp"
 #include "estimator.h"
@@ -62,14 +64,6 @@ cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspond
 	cv::Mat fundamentalMatrixRank2 = u1 * cv::Mat::diag(w1) * vt1;
 
 	return fundamentalMatrixRank2;
-}
-
-cv::Mat Estimator::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
-
-	std::vector<cv::Point2f> correspondingPoints1_randomSubset;
-	std::vector<cv::Point2f> correspondingPoints2_randomSubset;
-
-	
 }
 
 /* 

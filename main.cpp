@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 	std::string custom_or_debug(argv[1]);
 	if(custom_or_debug.compare("custom") == 0){
 		Rectification rectificator("img1.jpg", "img2.jpg");
-		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages(false);
+		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages(true);
 	}else if(custom_or_debug.compare("debug") == 0){
 		debugWithOpenCV("img1.jpg", "img2.jpg");
 	}	

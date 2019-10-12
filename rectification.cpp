@@ -18,6 +18,122 @@ cv::Mat Rectification::warpImage(cv::Mat image, cv::Mat homography){
 	return warpedImage;
 }
 
+std::vector<int> Rectification::getFMatInlierIndices(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2, cv::Mat fundamentalMatrix, double thr){
+	std::vector<int> inlierIndices;
+	for (int i = 0; i < (int)correspondingPoints1.size(); i++) {
+		cv::Mat point1Mat(cv::Size(1,3), CV_64FC1);
+        cv::Mat point2Mat(cv::Size(1,3), CV_64FC1);
+        point1Mat.at<double>(0,0) = (double)correspondingPoints1[i].x;
+        point1Mat.at<double>(1,0) = (double)correspondingPoints1[i].y;
+        point1Mat.at<double>(2,0) = 1.0;
+        point2Mat.at<double>(0,0) = (double)correspondingPoints2[i].x;
+        point2Mat.at<double>(1,0) = (double)correspondingPoints2[i].y;
+        point2Mat.at<double>(2,0) = 1.0;
+
+		cv::Mat line2Mat = fundamentalMatrix * point1Mat;
+		cv::Mat line1Mat = fundamentalMatrix.t() * point2Mat;
+		double a1 = line1Mat.at<double>(0,0);
+		double b1 = line1Mat.at<double>(1,0);
+		double c1 = line1Mat.at<double>(2,0);
+		double a2 = line2Mat.at<double>(0,0);
+		double b2 = line2Mat.at<double>(1,0);
+		double c2 = line2Mat.at<double>(2,0);
+		double x1 = point1Mat.at<double>(0,0);
+		double y1 = point1Mat.at<double>(1,0);
+		double x2 = point2Mat.at<double>(0,0);
+		double y2 = point2Mat.at<double>(1,0);
+
+		double distP1L2 = abs(a2*x1 + b2*y1 + c2) / sqrt(a2*a2 + b2*b2);
+		double distP2L1 = abs(a1*x2 + b1*y2 + c1) / sqrt(a1*a1 + b1*b1);
+
+		if(distP2L1 <= thr && distP1L2 <= thr){
+			inlierIndices.push_back(i);
+		}
+
+	}
+	return inlierIndices;
+}
+
+cv::Mat Rectification::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2, double thr, int maxIter){
+
+	std::srand(unsigned(std::time(0)));
+
+	Estimator estimator;
+
+	std::vector<int> bestFitInlierIndices;
+	cv::Mat bestFitFundamentalMat;
+
+	int maxInliers = 0;
+
+	for(int iter = 0; iter < maxIter; iter++){
+
+		std::vector<cv::Point2f> correspondingPoints1_randomSubset;
+		std::vector<cv::Point2f> correspondingPoints2_randomSubset;
+		std::vector<cv::Point2f> correspondingPoints1_normalized_randomSubset;
+		std::vector<cv::Point2f> correspondingPoints2_normalized_randomSubset;
+
+		std::vector<int> correspondingPointIndices;
+		for(int i = 0; i < (int)correspondingPoints1.size(); i++){
+			correspondingPointIndices.push_back(i);
+		}
+
+		std::random_shuffle(correspondingPointIndices.begin(), correspondingPointIndices.end());
+
+		for(int i = 0; i < 8; i++){
+			int randIndex = correspondingPointIndices[i];
+			correspondingPoints1_randomSubset.push_back(correspondingPoints1[randIndex]);
+			correspondingPoints2_randomSubset.push_back(correspondingPoints2[randIndex]);
+		}
+
+		std::vector<cv::Point3f> correspondingPoints1_randomSubset_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1_randomSubset);
+		std::vector<cv::Point3f> correspondingPoints2_randomSubset_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints2_randomSubset);
+
+		cv::Mat normMat1_randomSubset = Preprocessing::getNormalizationMat(correspondingPoints1_randomSubset_3f);
+		cv::Mat normMat2_randomSubset = Preprocessing::getNormalizationMat(correspondingPoints2_randomSubset_3f);
+
+		std::vector<cv::Point3f> correspondingPoints1_randomSubset_3f_normalized = Preprocessing::normalizeCoordinates(correspondingPoints1_randomSubset_3f, normMat1_randomSubset);
+		std::vector<cv::Point3f> correspondingPoints2_randomSubset_3f_normalized = Preprocessing::normalizeCoordinates(correspondingPoints2_randomSubset_3f, normMat2_randomSubset);
+
+		std::vector<cv::Point2f> correspondingPoints1_randomSubset_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_randomSubset_3f_normalized);
+		std::vector<cv::Point2f> correspondingPoints2_randomSubset_normalized = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_randomSubset_3f_normalized);
+
+		cv::Mat fundamentalMat = estimator.estimateFundamentalMatrix(correspondingPoints1_randomSubset_normalized, correspondingPoints2_randomSubset_normalized);
+		cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMat, normMat1_randomSubset, normMat2_randomSubset);
+		std::vector<int> inlierIndices = getFMatInlierIndices(correspondingPoints1, correspondingPoints2, fundamentalMatrixDenormalized, thr);
+
+		if((int)(inlierIndices.size()) > maxInliers){
+			maxInliers = inlierIndices.size();
+			bestFitInlierIndices = inlierIndices;
+		}
+
+		std::cout << "iter: " << iter << " max inliers: " << maxInliers << std::endl;
+	}
+
+	std::vector<cv::Point2f> correspondingPoints1_bestInliers;
+	std::vector<cv::Point2f> correspondingPoints2_bestInliers;
+	for(int i = 0; i < (int)bestFitInlierIndices.size(); i++){
+		correspondingPoints1_bestInliers.push_back(correspondingPoints1[bestFitInlierIndices[i]]);
+		correspondingPoints2_bestInliers.push_back(correspondingPoints2[bestFitInlierIndices[i]]);
+	}
+
+	std::vector<cv::Point3f> correspondingPoints1_normalized_bestInliers_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints1_bestInliers);
+	std::vector<cv::Point3f> correspondingPoints2_normalized_bestInliers_3f =  Preprocessing::transformPointsToHomogen(correspondingPoints2_bestInliers);
+
+	cv::Mat normMat1_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints1_normalized_bestInliers_3f);
+	cv::Mat normMat2_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints2_normalized_bestInliers_3f);
+
+	std::vector<cv::Point3f> correspondingPoints1_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints1_normalized_bestInliers_3f, normMat1_bestInliers);
+	std::vector<cv::Point3f> correspondingPoints2_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints2_normalized_bestInliers_3f, normMat2_bestInliers);
+
+	std::vector<cv::Point2f> correspondingPoints1_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_3f_normalized_bestInliers);
+	std::vector<cv::Point2f> correspondingPoints2_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized_bestInliers);
+
+	bestFitFundamentalMat = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized_bestInliers, correspondingPoints2_normalized_bestInliers);
+
+	std::cout << "final max inliers: " << maxInliers << std::endl;
+	return estimator.denormalizeFundamentalMatrix(bestFitFundamentalMat, normMat1_bestInliers, normMat2_bestInliers);
+}
+
 std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondingPointsList;
 	if(use_ransac){
@@ -42,12 +158,14 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 
 	Estimator estimator;
 	cv::Mat fundamentalMatrix;
+	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrix = estimator.estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized);
+		fundamentalMatrix = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 2, 1000);
+		fundamentalMatrixDenormalized = fundamentalMatrix.clone();
 	}else{
 		fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
+		fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 	}
-	cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
 	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines = getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);
 	cv::Point2d epipole1 = estimator.estimateEpipole(epilines.first);
