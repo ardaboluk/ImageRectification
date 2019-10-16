@@ -66,6 +66,48 @@ cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspond
 	return fundamentalMatrixRank2;
 }
 
+/*
+* Returns an array of epipolar lines.
+* Each row represents 2 epipolar lines.
+* The first one is the line on the second image corresponding the to point in the first image.
+* The second one is the line on the first image corresponding the to point in the second image.
+*/
+std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> Estimator::getEpilines(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondenceList, cv::Mat fundamentalMatrix) {
+	
+	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines;
+
+	for (int i = 0; i < (int)correspondenceList.first.size(); i++) {
+		cv::Point3d point1;
+		cv::Point3d point2;
+		cv::Mat point1Mat;
+		cv::Mat point2Mat;
+		point1.x = correspondenceList.first[i].x;
+		point1.y = correspondenceList.first[i].y;
+		point1.z = 1.0;
+		point1Mat = cv::Mat(point1);
+		point2.x = correspondenceList.second[i].x;
+		point2.y = correspondenceList.second[i].y;
+		point2.z = 1.0;
+		point2Mat = cv::Mat(point2);
+
+		cv::Mat line2Mat = fundamentalMatrix * point1Mat;
+		cv::Mat line1Mat = fundamentalMatrix.t() * point2Mat;
+		cv::Point3d line1;
+		cv::Point3d line2;
+		line1.x = line1Mat.at<double>(0,0);
+		line1.y = line1Mat.at<double>(1,0);
+		line1.z = line1Mat.at<double>(2,0);
+		line2.x = line2Mat.at<double>(0,0);
+		line2.y = line2Mat.at<double>(1,0);
+		line2.z = line2Mat.at<double>(2,0);
+
+		epilines.first.push_back(line1);
+		epilines.second.push_back(line2);
+	}
+
+	return epilines;
+}
+
 /* 
 * If this method will be called, the private member correspondingPointsListNormalized should be given
 * corresponding points that aren't normalized.

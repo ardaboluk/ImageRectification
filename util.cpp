@@ -40,8 +40,8 @@ std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> Util::extractMatch
         if ( dist > max_dist ) max_dist = dist;
     }
 
-    printf ( "-- Max dist : %f \n", max_dist);
-    printf ( "-- Min dist : %f \n", min_dist);
+    // printf ( "-- Max dist : %f \n", max_dist);
+    // printf ( "-- Min dist : %f \n", min_dist);
 
     if(numPoints < 0){
         numPoints = descriptors_1.rows;

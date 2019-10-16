@@ -13,11 +13,10 @@ private:
 	cv::Mat warpImage(cv::Mat image, cv::Mat homography);
 	// returns how a given fundamental matrix fits the given corresponding points
 	std::vector<int> getFMatInlierIndices(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2, cv::Mat fundamentalMatrix, double thr);
-	cv::Mat estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2, double thr = 1.0, int maxIter = 1000);
+	cv::Mat estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> correspondingPoints1_normalized, std::vector<cv::Point2f> correspondingPoints2_normalized, double thr = 1.0, int maxIter = 1000);
 public:
 	Rectification(std::string image1FileName, std::string image2FileName);
 	std::pair<cv::Mat, cv::Mat> rectifyImages(bool use_ransac);
-	std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> getEpilines(std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f>> correspondenceList, cv::Mat fundamentalMatrix);
 	void drawEpilines(std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilines, cv::Mat image1, cv::Mat image2);
 	void drawEpipoles(cv::Point2d epipoleImage1, cv::Point2d epipoleImage2, cv::Mat image1, cv::Mat image2);
 	cv::Mat warpImagePerspective(cv::Mat homographyMat, cv::Mat image);
