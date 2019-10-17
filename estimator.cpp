@@ -9,9 +9,27 @@
 #include "preprocessing.h"
 #include "util.h"
 
-cv::Mat Estimator::buildHMSMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2) {
+cv::Mat Estimator::buildHMSMatrix8x9(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2) {
 	cv::Mat hms(cv::Size(9,8), CV_64FC1);
 	for (int i = 0; i < 8; i++) {
+		cv::Point2f point = correspondingPoints1[i];
+		cv::Point2f pointPrime = correspondingPoints2[i];
+		hms.at<double>(i,0) = (double)pointPrime.x * point.x; // x' * x
+		hms.at<double>(i,1) = (double)pointPrime.x * point.y; // x' * y
+		hms.at<double>(i,2) = pointPrime.x; // x'
+		hms.at<double>(i,3) = (double)pointPrime.y * point.x; // y' * x
+		hms.at<double>(i,4) = (double)pointPrime.y * point.y; // y' * y
+		hms.at<double>(i,5) = pointPrime.y; // y'
+		hms.at<double>(i,6) = point.x; // x
+		hms.at<double>(i,7) = point.y; // y
+		hms.at<double>(i,8) = 1.0; // 1
+	}
+	return hms;
+}
+
+cv::Mat Estimator::buildHMSMatrixNx9(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
+	cv::Mat hms(cv::Size(9,8), CV_64FC1);
+	for (int i = 0; i < correspondingPoints1.size(); i++) {
 		cv::Point2f point = correspondingPoints1[i];
 		cv::Point2f pointPrime = correspondingPoints2[i];
 		hms.at<double>(i,0) = (double)pointPrime.x * point.x; // x' * x
@@ -45,8 +63,8 @@ cv::Mat Estimator::denormalizeFundamentalMatrix(cv::Mat fundamentalMatrix, cv::M
 	return denormalizedFundamentalMatrix;
 }
 
-cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
-	cv::Mat hms = buildHMSMatrix(correspondingPoints1, correspondingPoints2);
+cv::Mat Estimator::estimateFundamentalMatrix8Point(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
+	cv::Mat hms = buildHMSMatrix8x9(correspondingPoints1, correspondingPoints2);
 	cv::Mat w, u, vt;
 	// u * diag(w) * v
 	cv::SVDecomp(hms, w, u, vt, cv::SVD::FULL_UV);
@@ -55,6 +73,27 @@ cv::Mat Estimator::estimateFundamentalMatrix(std::vector<cv::Point2f> correspond
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 			fundamentalMatrix.at<double>(i, j) = v.col(8).at<double>(i * 3 + j);
+		}
+	}
+	// enforce rank-2 constraint
+	cv::Mat w1, u1, vt1;
+	cv::SVDecomp(fundamentalMatrix, w1, u1, vt1, cv::SVD::FULL_UV);
+	w1.at<double>(2,0) = 0;
+	cv::Mat fundamentalMatrixRank2 = u1 * cv::Mat::diag(w1) * vt1;
+
+	return fundamentalMatrixRank2;
+}
+
+cv::Mat Estimator::estimateFundamentalMatrixNPoint(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
+	cv::Mat hms = buildHMSMatrixNx9(correspondingPoints1, correspondingPoints2);
+	cv::Mat w, u, vt;
+	// u * diag(w) * v
+	cv::SVDecomp(hms, w, u, vt, cv::SVD::FULL_UV);
+	cv::Mat v = vt.t();
+	cv::Mat fundamentalMatrix = cv::Mat::zeros(cv::Size(3, 3), CV_64FC1);
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			fundamentalMatrix.at<double>(i, j) = v.col(v.cols - 1).at<double>(i * 3 + j);
 		}
 	}
 	// enforce rank-2 constraint

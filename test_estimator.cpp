@@ -9,11 +9,11 @@
 #include "estimator.h"
 
 std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vector<cv::Point2f> points1, std::vector<cv::Point2f> points2);
-void test_estimateFundamentalMatrix();
+void test_estimateFundamentalMatrix8Point();
 void test_fundamentalMatrixOpencv();
 void test_getEpilines();
 
-int main(){
+int __main(){
 
     // test_fundamentalMatrixOpencv();
     // test_estimateFundamentalMatrix();
@@ -43,7 +43,7 @@ std::vector<double> checkFundamentalMatrix(cv::Mat fundamentalMatrix, std::vecto
 	return results;
 }
 
-void test_estimateFundamentalMatrix(){
+void test_estimateFundamentalMatrix8Point(){
 
     std::vector<std::string> imageFileNames1{"img1.jpg", "Lab_1.jpg", "Building_1.jpg"};
     std::vector<std::string> imageFileNames2{"img2.jpg", "Lab_2.jpg", "Building_2.jpg"};
@@ -75,7 +75,7 @@ void test_estimateFundamentalMatrix(){
         correspondingPointsList_normalized.second = correspondingPoints2_normalized;
 
         Estimator estimator;
-        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
+        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix8Point(correspondingPoints1_normalized, correspondingPoints2_normalized);
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
         std::vector<double> results = checkFundamentalMatrix(fundamentalMatrixDenormalized, correspondingPoints1, correspondingPoints2);
@@ -122,7 +122,7 @@ void test_getEpilines(){
         correspondingPointsList_normalized.second = correspondingPoints2_normalized;
 
         Estimator estimator;
-        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix(correspondingPoints1_normalized, correspondingPoints2_normalized);
+        cv::Mat fundamentalMatrix = estimator.estimateFundamentalMatrix8Point(correspondingPoints1_normalized, correspondingPoints2_normalized);
         cv::Mat fundamentalMatrixDenormalized = estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 
         std::pair<std::vector<cv::Point3d>, std::vector<cv::Point3d>> epilinesList = estimator.getEpilines(correspondingPointsList, fundamentalMatrixDenormalized);
