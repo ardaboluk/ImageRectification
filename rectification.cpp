@@ -167,7 +167,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat fundamentalMatrix;
 	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized, 0.1, 10000);
+		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized);
 		//fundamentalMatrixDenormalized =  estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
 		Util::displayMat(fundamentalMatrixDenormalized, "RANSAC Fundamental Matrix");
 	}else{
@@ -186,8 +186,8 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	std::string epilines1WindowName = "Epilines1";
 	std::string epilines2WindowName = "Epilines2";
 	cv::namedWindow(epilines1WindowName);
-	cv::namedWindow(epilines2WindowName);
 	cv::imshow(epilines1WindowName, image1WithEpilines);
+	cv::namedWindow(epilines2WindowName);	
 	cv::imshow(epilines2WindowName, image2WithEpilines);
 	cv::waitKey(0);
 
