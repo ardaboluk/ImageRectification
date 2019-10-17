@@ -137,6 +137,7 @@ cv::Mat Rectification::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> 
 	bestFitFundamentalMat = estimator.estimateFundamentalMatrixNPoint(correspondingPoints1_normalized_bestInliers, correspondingPoints2_normalized_bestInliers);
 	bestFitFundamentalMatDenormalized = estimator.denormalizeFundamentalMatrix(bestFitFundamentalMat, normMat1_bestInliers, normMat2_bestInliers);
 
+	maxInliers = getFMatInlierIndices(correspondingPoints1, correspondingPoints2, bestFitFundamentalMatDenormalized, thr).size();
 	std::cout << "final max inliers: " << maxInliers << std::endl;
 	return bestFitFundamentalMatDenormalized;
 }
@@ -167,8 +168,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat fundamentalMatrix;
 	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized);
-		//fundamentalMatrixDenormalized =  estimator.denormalizeFundamentalMatrix(fundamentalMatrix, normMat1, normMat2);
+		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized, 2.0);
 		Util::displayMat(fundamentalMatrixDenormalized, "RANSAC Fundamental Matrix");
 	}else{
 		fundamentalMatrix = estimator.estimateFundamentalMatrix8Point(correspondingPoints1_normalized, correspondingPoints2_normalized);
