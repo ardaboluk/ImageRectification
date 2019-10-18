@@ -28,7 +28,7 @@ cv::Mat Estimator::buildHMSMatrix8x9(std::vector<cv::Point2f> correspondingPoint
 }
 
 cv::Mat Estimator::buildHMSMatrixNx9(std::vector<cv::Point2f> correspondingPoints1, std::vector<cv::Point2f> correspondingPoints2){
-	cv::Mat hms(cv::Size(9,8), CV_64FC1);
+	cv::Mat hms(cv::Size(9,correspondingPoints1.size()), CV_64FC1);
 	for (int i = 0; i < correspondingPoints1.size(); i++) {
 		cv::Point2f point = correspondingPoints1[i];
 		cv::Point2f pointPrime = correspondingPoints2[i];
