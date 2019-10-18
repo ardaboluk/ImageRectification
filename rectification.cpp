@@ -109,36 +109,40 @@ cv::Mat Rectification::estimateFundamentalMatrixRANSAC(std::vector<cv::Point2f> 
 
 		if((int)(inlierIndices.size()) > maxInliers){
 			maxInliers = inlierIndices.size();
+			std::cout << "Max inliers: " << maxInliers << std::endl;
 			bestFitInlierIndices = inlierIndices;
+			bestFitFundamentalMatDenormalized = fundamentalMatrixDenormalized.clone();
 		}
 
 		//std::cout << "iter: " << iter << " max inliers: " << maxInliers << std::endl;
 	}
 
-	std::vector<cv::Point2f> correspondingPoints1_bestInliers;
-	std::vector<cv::Point2f> correspondingPoints2_bestInliers;
-	for(int i = 0; i < (int)bestFitInlierIndices.size(); i++){
-		correspondingPoints1_bestInliers.push_back(correspondingPoints1[bestFitInlierIndices[i]]);
-		correspondingPoints2_bestInliers.push_back(correspondingPoints2[bestFitInlierIndices[i]]);
-	}
+	// std::cout << "best fit inlier size: " << bestFitInlierIndices.size() << std::endl;
+	// std::vector<cv::Point2f> correspondingPoints1_bestInliers;
+	// std::vector<cv::Point2f> correspondingPoints2_bestInliers;
+	// for(int i = 0; i < (int)bestFitInlierIndices.size(); i++){
+	// 	correspondingPoints1_bestInliers.push_back(correspondingPoints1[bestFitInlierIndices[i]]);
+	// 	correspondingPoints2_bestInliers.push_back(correspondingPoints2[bestFitInlierIndices[i]]);
+	// }
 
-	std::vector<cv::Point3f> correspondingPoints1_3f_bestInliers =  Preprocessing::transformPointsToHomogen(correspondingPoints1_bestInliers);
-	std::vector<cv::Point3f> correspondingPoints2_3f_bestInliers =  Preprocessing::transformPointsToHomogen(correspondingPoints2_bestInliers);
+	// std::vector<cv::Point3f> correspondingPoints1_3f_bestInliers =  Preprocessing::transformPointsToHomogen(correspondingPoints1_bestInliers);
+	// std::vector<cv::Point3f> correspondingPoints2_3f_bestInliers =  Preprocessing::transformPointsToHomogen(correspondingPoints2_bestInliers);
 
-	cv::Mat normMat1_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints1_3f_bestInliers);
-	cv::Mat normMat2_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints2_3f_bestInliers);
+	// cv::Mat normMat1_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints1_3f_bestInliers);
+	// cv::Mat normMat2_bestInliers = Preprocessing::getNormalizationMat(correspondingPoints2_3f_bestInliers);
 
-	std::vector<cv::Point3f> correspondingPoints1_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints1_3f_bestInliers, normMat1_bestInliers);
-	std::vector<cv::Point3f> correspondingPoints2_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints2_3f_bestInliers, normMat2_bestInliers);
+	// std::vector<cv::Point3f> correspondingPoints1_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints1_3f_bestInliers, normMat1_bestInliers);
+	// std::vector<cv::Point3f> correspondingPoints2_3f_normalized_bestInliers = Preprocessing::normalizeCoordinates(correspondingPoints2_3f_bestInliers, normMat2_bestInliers);
 
-	std::vector<cv::Point2f> correspondingPoints1_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_3f_normalized_bestInliers);
-	std::vector<cv::Point2f> correspondingPoints2_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized_bestInliers);
+	// std::vector<cv::Point2f> correspondingPoints1_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints1_3f_normalized_bestInliers);
+	// std::vector<cv::Point2f> correspondingPoints2_normalized_bestInliers = Preprocessing::transformPointsToNonHomogen(correspondingPoints2_3f_normalized_bestInliers);
 
-	bestFitFundamentalMat = estimator.estimateFundamentalMatrixNPoint(correspondingPoints1_normalized_bestInliers, correspondingPoints2_normalized_bestInliers);
-	bestFitFundamentalMatDenormalized = estimator.denormalizeFundamentalMatrix(bestFitFundamentalMat, normMat1_bestInliers, normMat2_bestInliers);
+	// std::cout << "correspondingPoints1_normalized_bestInliers.size(): " << correspondingPoints1_normalized_bestInliers.size() << std::endl;
+	// bestFitFundamentalMat = estimator.estimateFundamentalMatrixNPoint(correspondingPoints1_normalized_bestInliers, correspondingPoints2_normalized_bestInliers);
+	// bestFitFundamentalMatDenormalized = estimator.denormalizeFundamentalMatrix(bestFitFundamentalMat, normMat1_bestInliers, normMat2_bestInliers);
 
-	maxInliers = getFMatInlierIndices(correspondingPoints1, correspondingPoints2, bestFitFundamentalMatDenormalized, thr).size();
-	std::cout << "final max inliers: " << maxInliers << std::endl;
+	// maxInliers = getFMatInlierIndices(correspondingPoints1, correspondingPoints2, bestFitFundamentalMatDenormalized, thr).size();
+	// std::cout << "final max inliers: " << maxInliers << std::endl;
 	return bestFitFundamentalMatDenormalized;
 }
 
@@ -168,7 +172,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat fundamentalMatrix;
 	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1_normalized, correspondingPoints2_normalized, 2.0);
+		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 3.0, 1000);
 		Util::displayMat(fundamentalMatrixDenormalized, "RANSAC Fundamental Matrix");
 	}else{
 		fundamentalMatrix = estimator.estimateFundamentalMatrix8Point(correspondingPoints1_normalized, correspondingPoints2_normalized);
@@ -197,10 +201,10 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat warpedImage1;
 	cv::warpPerspective(image2WithEpilines, warpedImage2, H2, cv::Size(image2.cols, image2.rows));
 	cv::warpPerspective(image1WithEpilines, warpedImage1, H1, cv::Size(image1.cols, image1.rows));
-	cv::namedWindow("Warped Image 2");
-	cv::imshow("Warped Image 2", warpedImage2);
-	cv::namedWindow("Warped Image 1");
-	cv::imshow("Warped Image 1", warpedImage1);
+	cv::Mat imageConcatenated;
+	cv::hconcat(warpedImage1, warpedImage2, imageConcatenated);	
+	cv::namedWindow("Warped Images");
+	cv::imshow("Warped Images", imageConcatenated);
 	cv::waitKey(0);
 
 	std::pair<cv::Mat, cv::Mat> warpedImages;
