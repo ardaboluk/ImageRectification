@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <numeric>
 
 #include "rectification.h"
 #include "util.h"
@@ -69,6 +70,7 @@ std::vector<int> Rectification::getFMatInlierIndices(std::vector<cv::Point2f> co
 		// }
 
 	}
+
 	return inlierIndices;
 }
 
@@ -183,7 +185,7 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::Mat fundamentalMatrix;
 	cv::Mat fundamentalMatrixDenormalized;
 	if(use_ransac){
-		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 3.0, 5000);
+		fundamentalMatrixDenormalized = estimateFundamentalMatrixRANSAC(correspondingPoints1, correspondingPoints2, 3.0, 10000);
 		Util::displayMat(fundamentalMatrixDenormalized, "RANSAC Fundamental Matrix");
 	}else{
 		fundamentalMatrix = estimator.estimateFundamentalMatrix8Point(correspondingPoints1_normalized, correspondingPoints2_normalized);
