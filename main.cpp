@@ -30,21 +30,23 @@ std::string image2FileName;
 
 int main(int argc, char* argv[]) {
 
-	std::string custom_or_debug(argv[1]);
-	if(custom_or_debug.compare("custom") == 0){
-		Rectification rectificator("img1.jpg", "img2.jpg");
-		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages(true);
-	}else if(custom_or_debug.compare("debug") == 0){
-		debugWithOpenCV("img1.jpg", "img2.jpg");
-	}	
-	
-	/*if (argc > 2) {
-		image1FileName = argv[1];
-		image2FileName = argv[2];
+	if (argc > 3) {
+		image1FileName = argv[2];
+		image2FileName = argv[3];
 	}
 	else {
 		getFileNamesFromUser();
 	}
+
+	std::string custom_or_debug(argv[1]);
+	if(custom_or_debug.compare("custom") == 0){
+		Rectification rectificator(image1FileName, image2FileName);
+		std::pair<cv::Mat, cv::Mat> rectifiedImages =  rectificator.rectifyImages(true);
+	}else if(custom_or_debug.compare("debug") == 0){
+		debugWithOpenCV(image1FileName, image2FileName);
+	}	
+	
+	/*
 
 	cv::Mat image1 = cv::imread(image1FileName);
 	cv::Mat image2 = cv::imread(image2FileName);
