@@ -209,7 +209,8 @@ std::pair<cv::Mat, cv::Mat> Rectification::rectifyImages(bool use_ransac){
 	cv::waitKey(0);
 
 	cv::Mat H2 = estimator.estimateHomography2(epipole2, image2.size());
-	cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole2, correspondingPointsList);
+	cv::Mat H1 = estimator.estimateHomography2(epipole1, image1.size());
+	//cv::Mat H1 = estimator.estimateHomography1(fundamentalMatrixDenormalized, H2, epipole2, correspondingPointsList);
 	cv::Mat warpedImage2;
 	cv::Mat warpedImage1;
 	cv::warpPerspective(image2WithEpilines, warpedImage2, H2, cv::Size(image2.cols, image2.rows));
